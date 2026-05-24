@@ -568,7 +568,7 @@ const ALLOWED = ['margihdesai@gmail.com', 'samarthjmodi@gmail.com'];
 
 function signIn() {
   const provider = new firebase.auth.GoogleAuthProvider();
-  firebase.auth().signInWithPopup(provider).catch(err => {
+  firebase.auth().signInWithRedirect(provider).catch(err => {
     document.getElementById('login-error').textContent = 'Sign-in failed. Please try again.';
   });
 }

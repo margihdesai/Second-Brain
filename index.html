@@ -562,6 +562,22 @@
 
 <script>
 // ────────────────────────────────────────────────────────────
+//  FIREBASE INIT
+// ────────────────────────────────────────────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyCkTkvEYXKYJjVqMcoijVF7aa6gszi6WXg",
+  authDomain: "second-brain-1619f.firebaseapp.com",
+  databaseURL: "https://second-brain-1619f-default-rtdb.firebaseio.com",
+  projectId: "second-brain-1619f",
+  storageBucket: "second-brain-1619f.firebasestorage.app",
+  messagingSenderId: "192541189972",
+  appId: "1:192541189972:web:3b216087a61b5bf6a90ac1"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const entriesRef = db.ref('entries');
+
+// ────────────────────────────────────────────────────────────
 //  AUTH
 // ────────────────────────────────────────────────────────────
 const ALLOWED = ['margihdesai@gmail.com', 'samarthjmodi@gmail.com'];
@@ -592,22 +608,6 @@ firebase.auth().onAuthStateChanged(user => {
     }
   }
 });
-
-// ────────────────────────────────────────────────────────────
-//  FIREBASE
-// ────────────────────────────────────────────────────────────
-const firebaseConfig = {
-  apiKey: "AIzaSyCkTkvEYXKYJjVqMcoijVF7aa6gszi6WXg",
-  authDomain: "second-brain-1619f.firebaseapp.com",
-  databaseURL: "https://second-brain-1619f-default-rtdb.firebaseio.com",
-  projectId: "second-brain-1619f",
-  storageBucket: "second-brain-1619f.firebasestorage.app",
-  messagingSenderId: "192541189972",
-  appId: "1:192541189972:web:3b216087a61b5bf6a90ac1"
-};
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
-const entriesRef = db.ref('entries');
 
 // ────────────────────────────────────────────────────────────
 //  DATA

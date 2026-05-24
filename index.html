@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Our Second Brain</title>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -502,9 +504,24 @@
 
 <script>
 // ────────────────────────────────────────────────────────────
+//  FIREBASE
+// ────────────────────────────────────────────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyCkTkvEYXKYJjVqMcoijVF7aa6gszi6WXg",
+  authDomain: "second-brain-1619f.firebaseapp.com",
+  databaseURL: "https://second-brain-1619f-default-rtdb.firebaseio.com",
+  projectId: "second-brain-1619f",
+  storageBucket: "second-brain-1619f.firebasestorage.app",
+  messagingSenderId: "192541189972",
+  appId: "1:192541189972:web:3b216087a61b5bf6a90ac1"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const entriesRef = db.ref('entries');
+
+// ────────────────────────────────────────────────────────────
 //  DATA
 // ────────────────────────────────────────────────────────────
-const SK = 'second-brain-v3';
 const PC = { Margi: '#E07A5F', Samarth: '#3D8B8F' };
 
 const CATS = [
@@ -533,17 +550,17 @@ const GREET = {
 };
 
 let partner  = 'Margi';
-let entries  = loadEntries();
+let entries  = [];
 let chatOpen = false;
 let state    = 'ready';   // 'ready' | 'await_cat'
 let pending  = null;
 let hintCat  = null;
 
-function loadEntries() {
-  try { return JSON.parse(localStorage.getItem(SK)) || seedEntries(); }
-  catch { return seedEntries(); }
+function saveEntries() {
+  const obj = {};
+  entries.forEach(e => { obj[e.id] = e; });
+  entriesRef.set(obj);
 }
-function saveEntries() { localStorage.setItem(SK, JSON.stringify(entries)); }
 
 function seedEntries() {
   const n = Date.now();
@@ -606,7 +623,6 @@ function addEntry(text, cat) {
               category: cat, ts: new Date().toISOString(), acked: false, ackedBy: null };
   entries.unshift(e);
   saveEntries();
-  renderBoard();
   return e;
 }
 
@@ -615,12 +631,12 @@ function ackEntry(id) {
   if (!e || e.author === partner) return;
   e.acked = !e.acked;
   e.ackedBy = e.acked ? partner : null;
-  saveEntries(); renderBoard();
+  saveEntries();
 }
 
 function delEntry(id) {
   entries = entries.filter(x => x.id !== id);
-  saveEntries(); renderBoard();
+  saveEntries();
 }
 
 // ────────────────────────────────────────────────────────────
@@ -912,8 +928,18 @@ function maybeClose(ev) { if (ev.target === document.getElementById('overlay')) 
 // ────────────────────────────────────────────────────────────
 //  INIT
 // ────────────────────────────────────────────────────────────
+entriesRef.on('value', (snapshot) => {
+  const data = snapshot.val();
+  if (data) {
+    entries = Object.values(data).sort((a, b) => new Date(b.ts) - new Date(a.ts));
+  } else {
+    entries = seedEntries();
+    saveEntries();
+  }
+  renderBoard();
+});
+
 setPartner('Margi');
-renderBoard();
 </script>
 </body>
 </html>

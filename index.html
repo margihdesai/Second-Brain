@@ -229,6 +229,8 @@
     .card:active { cursor: grabbing; }
     .card.dragging { opacity: 0.38; transform: rotate(2deg) scale(1.02); }
     .card.acked { opacity: 0.48; }
+    .card.done { opacity: 0.55; }
+    .card.done .card-text { text-decoration: line-through; color: #9CA3AF; }
 
     .card-row1 { display: flex; gap: 8px; margin-bottom: 8px; }
     .card-av {
@@ -270,7 +272,9 @@
       transition: all 0.1s;
     }
     .card-btn.ack  { color: #9CA3AF; } .card-btn.ack:hover  { background: #F0FDF4; color: #166534; }
+    .card-btn.cmp  { color: #9CA3AF; } .card-btn.cmp:hover  { background: #F0FDF4; color: #16A34A; }
     .card-btn.del  { color: #E5E7EB; } .card-btn.del:hover  { background: #FEF2F2; color: #DC2626; }
+    [data-cat="completed"] .col-head { background: #F0FDF4; color: #166534; }
     .seen-dot { font-size: 9px; color: #6EE7B7; }
 
     @keyframes cardIn { from { opacity:0; transform:scale(0.93) translateY(5px); } to { opacity:1; transform:none; } }
@@ -739,7 +743,8 @@ const CATS = [
           'credit card','loan','tax return','expire','expiry','due date','overdue','direct debit',
           'standing order','pension','national insurance','hmrc','council tax'] },
 ];
-const OTHER = { id:'other', e:'📝', l:'Other' };
+const OTHER      = { id:'other',     e:'📝', l:'Other' };
+const COMPLETED  = { id:'completed', e:'☑️',  l:'Completed' };
 
 const BOT = {
   task:        ["Added ✅ — on your task list.", "Got it ✅. I'll keep that for you.", "Noted ✅ and saved.", "On the list ✅!"],
@@ -843,7 +848,9 @@ function setPartner(name) {
 // ────────────────────────────────────────────────────────────
 function addEntry(text, cat) {
   const e = { id: Date.now().toString(), text: text.trim(), author: partner,
-              category: cat, ts: new Date().toISOString(), acked: false, ackedBy: null };
+              category: cat, ts: new Date().toISOString(),
+              acked: false, ackedBy: null,
+              completed: false, completedBy: null, completedAt: null };
   entries.unshift(e);
   saveEntries();
   return e;
@@ -854,6 +861,15 @@ function ackEntry(id) {
   if (!e || e.author === partner) return;
   e.acked = !e.acked;
   e.ackedBy = e.acked ? partner : null;
+  saveEntries();
+}
+
+function completeEntry(id) {
+  const e = entries.find(x => x.id === id);
+  if (!e) return;
+  e.completed    = !e.completed;
+  e.completedBy  = e.completed ? partner : null;
+  e.completedAt  = e.completed ? new Date().toISOString() : null;
   saveEntries();
 }
 
@@ -897,14 +913,16 @@ function drop(ev, cat) {
 function renderCard(e) {
   const col   = PC[e.author] || '#888';
   const isOwn = e.author === partner;
-  const other = e.author === 'Margi' ? 'Samarth' : 'Margi';
+  const done  = !!e.completed;
 
   const ackBtn = !isOwn
     ? `<button class="card-btn ack" onclick="event.stopPropagation();ackEntry('${e.id}')">${e.acked ? '↩' : '👋'}</button>`
     : (e.acked ? `<span class="seen-dot">✓ seen</span>` : '');
 
+  const cmpBtn = `<button class="card-btn cmp" title="${done ? 'Undo complete' : 'Mark complete'}" onclick="event.stopPropagation();completeEntry('${e.id}')">${done ? '↩' : '✓'}</button>`;
+
   return `
-  <div class="card ${e.acked?'acked':''} card-new" id="c-${e.id}"
+  <div class="card ${e.acked?'acked':''} ${done?'done':''} card-new" id="c-${e.id}"
     draggable="true"
     ondragstart="dragStart(event,'${e.id}')"
     ondragend="dragEnd(event)">
@@ -915,6 +933,7 @@ function renderCard(e) {
     <div class="card-row2">
       <span class="card-time">${ago(e.ts)}</span>
       <div class="card-acts">
+        ${cmpBtn}
         ${ackBtn}
         <button class="card-btn del" onclick="event.stopPropagation();delEntry('${e.id}')">×</button>
       </div>
@@ -923,30 +942,35 @@ function renderCard(e) {
 }
 
 function renderBoard() {
-  const allCols  = [...CATS, OTHER];
+  const allCols  = [...CATS, OTHER, COMPLETED];
   const mobile   = isMobile();
 
   // Tab bar
   const tabBar = document.getElementById('tab-bar');
   tabBar.innerHTML = allCols.map(cat => {
-    const count = entries.filter(e => e.category === cat.id).length;
+    const count = cat.id === 'completed'
+      ? entries.filter(e => e.completed).length
+      : entries.filter(e => e.category === cat.id && !e.completed).length;
     return `<button class="tab-btn ${activeTab === cat.id ? 'active' : ''}" onclick="setTab('${cat.id}')">${cat.e} ${count}</button>`;
   }).join('');
 
   // Columns
   document.getElementById('board').innerHTML = allCols.map(cat => {
-    const cards    = entries.filter(e => e.category === cat.id);
-    const isActive = !mobile || activeTab === cat.id;
+    const cards = cat.id === 'completed'
+      ? entries.filter(e => e.completed)
+      : entries.filter(e => e.category === cat.id && !e.completed);
+    const isActive  = !mobile || activeTab === cat.id;
+    const canAdd    = cat.id !== 'completed';
     return `
     <div class="col ${isActive ? 'mobile-active' : ''}" data-cat="${cat.id}">
       <div class="col-head">
         <span class="col-emoji">${cat.e}</span>
         <span class="col-label">${cat.l}</span>
         <span class="col-count">${cards.length}</span>
-        <button class="col-plus" onclick="openChatFor('${cat.id}')" title="Add to ${cat.l}">+</button>
+        ${canAdd ? `<button class="col-plus" onclick="openChatFor('${cat.id}')" title="Add to ${cat.l}">+</button>` : ''}
       </div>
       <div class="col-body" ondragover="dragOver(event)" ondrop="drop(event,'${cat.id}')">
-        ${cards.length ? cards.map(renderCard).join('') : `<div class="col-empty">No ${cat.l.toLowerCase()} yet<br>Chat or drag cards here</div>`}
+        ${cards.length ? cards.map(renderCard).join('') : `<div class="col-empty">No ${cat.l.toLowerCase()} yet</div>`}
       </div>
     </div>`;
   }).join('');

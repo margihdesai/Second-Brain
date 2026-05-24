@@ -619,28 +619,70 @@ firebase.auth().onAuthStateChanged(user => {
 const PC = { Margi: '#E07A5F', Samarth: '#3D8B8F' };
 
 const CATS = [
-  { id:'task',       e:'✅', l:'Tasks',      rx:/\b(need\s+to|should|must|have\s+to|remember\s+to|don'?t\s+forget|call|fix|schedule|set\s+up|follow\s+up|book|confirm|check\s+on|remind|pick\s+up|arrange|get\s+done)\b/i },
-  { id:'worry',      e:'💭', l:'Worries',    rx:/\b(worried|worry|anxious|anxiety|stressed|stress|scared|nervous|fear|overwhelm|overwhelmed|concerned|dread|uneasy|unsure|panic)\b/i },
-  { id:'idea',       e:'💡', l:'Ideas',      rx:/\b(idea|what\s+if|maybe\s+we|could\s+we|would\s+be\s+nice|imagine|how\s+about|what\s+about|thinking\s+about\s+trying|let'?s\s+try|we\s+should\s+try)\b/i },
-  { id:'purchase',   e:'🛒', l:'Purchases',  rx:/\b(buy|order|purchase|need\s+to\s+get|looking\s+for|price|amazon|etsy|shop|gift\s+for|groceries|stock\s+up|reorder|research)\b/i },
-  { id:'trip',       e:'✈️', l:'Trips',      rx:/\b(trip|travel|visit|vacation|flight|hotel|airbnb|passport|itinerary|destination|holiday|road\s*trip|getaway|airfare|abroad)\b/i },
-  { id:'life-admin', e:'📋', l:'Life Admin', rx:/\b(insurance|taxes?|appointment|doctor|dentist|vet|bank|renew|renewal|form|deadline|budget|bill|lease|visa|license|utilities|registration|subscription)\b/i },
+  { id:'task', e:'✅', l:'Tasks',
+    keys:['need to','should','must','have to','remember to','don\'t forget','dont forget','todo','to-do',
+          'call','fix','schedule','set up','follow up','book','confirm','check on','remind','pick up',
+          'arrange','finish','complete','wrap up','send','email','text','message','pay','submit',
+          'fill out','sign','return','drop off','bring','prepare','clean','update','cancel',
+          'reschedule','apply','file','review','print','install','repair','replace','get done',
+          'gotta','got to','going to do','need done','action item','make sure','don\'t let me forget'] },
+  { id:'worry', e:'💭', l:'Worries',
+    keys:['worried','worry','anxious','anxiety','stressed','stress','scared','nervous','fear',
+          'overwhelmed','overwhelm','concerned','dread','uneasy','unsure','panic','not sure',
+          'uncertain','doubt','trouble','problem','issue','struggling','struggle','frustrated',
+          'frustrating','frustration','pressure','tension','conflict','unhappy','uncomfortable',
+          'bad feeling','something wrong','not okay','not ok','feels off','keep thinking about',
+          'can\'t stop thinking','been bothering','bothering me','weighing on me','on my mind'] },
+  { id:'idea', e:'💡', l:'Ideas',
+    keys:['idea','what if','maybe we','could we','would be nice','imagine','how about','what about',
+          'thinking about trying','let\'s try','lets try','we should try','suggestion','proposal',
+          'new project','experiment','try out','explore','consider','potential','opportunity',
+          'concept','vision','dream','would love to','been thinking','thinking of','thought of',
+          'came up with','what do you think about','wouldn\'t it be','might be cool','could be fun',
+          'we could','why don\'t we','let\'s start','let\'s make','let\'s do'] },
+  { id:'purchase', e:'🛒', l:'Purchases',
+    keys:['buy','order','purchase','need to get','looking for','price','amazon','etsy','shop',
+          'gift for','groceries','stock up','reorder','research','walmart','target','costco','ikea',
+          'get some','pick up some','need more','running out','out of','low on','deal','sale',
+          'discount','shipping','delivery','online shopping','add to cart','wishlist',
+          'how much does','costs','expensive','affordable','cheap','budget for','looking to buy',
+          'splurge on','treat ourselves','new gear','new gadget'] },
+  { id:'trip', e:'✈️', l:'Trips',
+    keys:['trip','travel','visit','vacation','flight','hotel','airbnb','passport','itinerary',
+          'destination','holiday','road trip','getaway','airfare','abroad','weekend away','cruise',
+          'explore','sightseeing','beach','mountains','international','domestic','ticket',
+          'reservation','packing','luggage','visa','tour','book flights','check flights',
+          'where should we go','places to go','travel to','fly to','drive to','staycation',
+          'long weekend','city break','escape'] },
+  { id:'life-admin', e:'📋', l:'Life Admin',
+    keys:['insurance','taxes','appointment','doctor','dentist','vet','bank','renew','renewal',
+          'form','deadline','budget','bill','lease','license','utilities','registration',
+          'subscription','mortgage','rent','payment','invoice','warranty','contract','policy',
+          'premium','claim','refund','statement','healthcare','prescription','medication',
+          'pharmacy','legal','lawyer','accountant','financial','investment','savings',
+          'credit card','loan','tax return','expire','expiry','due date','overdue','direct debit',
+          'standing order','pension','national insurance','hmrc','council tax'] },
 ];
 const OTHER = { id:'other', e:'📝', l:'Other' };
 
 const BOT = {
-  task:        ["Done! ✅ Added to your task list.", "Got it — on the task board ✅.", "Noted ✅. I'll keep that for you."],
-  worry:       ["Saved 💭. You can let it go for now — it's on the board.", "I hear you. I've noted that worry 💭.", "Captured 💭. It's safe here."],
-  idea:        ["Love it 💡! On the board.", "Ooh, great idea! 💡 Saved.", "Added 💡 — great thinking!"],
-  purchase:    ["On the list 🛒!", "Added to purchases 🛒.", "Saved 🛒 — you can research it together later."],
-  trip:        ["Ooh, travel! ✈️ Saved to trips.", "Added ✈️! That sounds exciting.", "Saved to trip ideas ✈️!"],
-  'life-admin':["Filed under Life Admin 📋.", "On it 📋 — noted.", "Saved 📋. Good staying on top of it."],
-  other:       ["Got it 📝. Saved!", "Noted 📝!", "Saved 📝."],
+  task:        ["Added ✅ — on your task list.", "Got it ✅. I'll keep that for you.", "Noted ✅ and saved.", "On the list ✅!"],
+  worry:       ["Saved 💭. You can let it go for now.", "I hear you 💭. It's safe here.", "Captured 💭 — it's on the board.", "Got it 💭. You don't have to hold that alone."],
+  idea:        ["Love it 💡! On the board.", "Great idea! 💡 Saved.", "Added 💡 — worth exploring!", "Ooh, noted 💡. Could be something!"],
+  purchase:    ["On the list 🛒!", "Added to purchases 🛒.", "Saved 🛒 — research it together later.", "Got it 🛒. Added!"],
+  trip:        ["Ooh, travel! ✈️ Saved.", "Added ✈️! That sounds exciting.", "Saved to trip ideas ✈️!", "Love it ✈️ — noted!"],
+  'life-admin':["Filed under Life Admin 📋.", "On it 📋 — noted.", "Saved 📋. Good staying on top of it.", "Noted 📋. One less thing to forget!"],
+  other:       ["Got it 📝. Saved!", "Noted 📝!", "Saved 📝.", "Added 📝!"],
 };
 
+function botReply(cat) {
+  const replies = BOT[cat] || BOT.other;
+  return replies[Math.floor(Math.random() * replies.length)];
+}
+
 const GREET = {
-  Margi:   ["Hey Margi! 👋 What's on your mind? Just tell me — I'll sort it onto the board.", "Hi Margi! Dump anything here and I'll organise it for you 🧠"],
-  Samarth: ["Hey Samarth! 👋 What's on your mind? I'll take care of sorting it.", "Hi Samarth! Tell me what you're thinking — I'll organise it 🧠"],
+  Margi:   ["Hey Margi! 👋 What's on your mind? Just tell me — I'll sort it.", "Hi Margi! Dump anything here and I'll organise it 🧠", "Hey! What do you want to get off your mind?"],
+  Samarth: ["Hey Samarth! 👋 What's on your mind? I'll take care of sorting it.", "Hi Samarth! Tell me what you're thinking — I'll organise it 🧠", "Hey! What's on your mind?"],
 };
 
 let partner  = 'Margi';
@@ -693,9 +735,16 @@ function ago(iso) {
   return new Date(iso).toLocaleDateString('en-US',{month:'short',day:'numeric'});
 }
 
+function scoreCats(text) {
+  const lo = text.toLowerCase();
+  return CATS
+    .map(c => ({ cat: c, score: c.keys.filter(k => lo.includes(k)).length }))
+    .filter(x => x.score > 0)
+    .sort((a, b) => b.score - a.score);
+}
+
 function detectCat(text) {
-  for (const c of CATS) { if (c.rx.test(text)) return c.id; }
-  return 'other';
+  return scoreCats(text)[0]?.cat.id || 'other';
 }
 
 // ────────────────────────────────────────────────────────────
@@ -874,65 +923,119 @@ function send() {
 function processMsg(text) {
   const lo = text.toLowerCase();
 
-  // Conversational shortcuts
-  if (/^(hi|hey|hello|yo|sup)\b/.test(lo)) {
+  // Greetings
+  if (/^(hi|hey|hello|yo|sup|hiya)\b/.test(lo)) {
     typing(() => addBot("Hey! 👋 What's on your mind?"));
     return;
   }
-  if (/\b(thank|thanks|thx|ty)\b/.test(lo)) {
+  // Thanks
+  if (/\b(thank you|thanks|thx|ty)\b/.test(lo)) {
     typing(() => addBot("Happy to help 🧠 Anything else?"));
     return;
   }
-  if (/\b(show|list|what).*(task|worry|idea|purchase|trip|admin)\b/.test(lo)) {
-    const w = lo.match(/task|worry|idea|purchase|trip|admin/)?.[0];
-    showList(w === 'admin' ? 'life-admin' : w);
+  // Undo
+  if (/\b(undo|delete that|remove that|never mind|nevermind|scratch that)\b/.test(lo)) {
+    const last = entries.find(e => e.author === partner);
+    if (last) {
+      const preview = last.text.slice(0, 40) + (last.text.length > 40 ? '…' : '');
+      delEntry(last.id);
+      typing(() => addBot(`Removed "${preview}" 🗑`));
+    } else {
+      typing(() => addBot("Nothing recent to undo!"));
+    }
+    return;
+  }
+  // Summary
+  if (/\b(summary|overview|show (me )?everything|show all|what('?s| is) on (the )?board)\b/.test(lo)) {
+    showSummary();
+    return;
+  }
+  // Count
+  if (/\b(how many|count|total)\b/.test(lo)) {
+    const unseen = entries.filter(e => !e.acked && e.author !== partner).length;
+    typing(() => addBot(`${entries.length} items on the board total. ${unseen} new for you.`));
+    return;
+  }
+  // Show by author
+  if (/\b(what did (samarth|margi) (add|post|say)|show (samarth|margi)'?s)\b/.test(lo)) {
+    const name = lo.match(/samarth|margi/)?.[0];
+    showByAuthor(name.charAt(0).toUpperCase() + name.slice(1));
+    return;
+  }
+  // Show category
+  if (/\b(show|list|what).*(task|worr|idea|purchase|trip|admin)\b/.test(lo)) {
+    const w = lo.match(/task|worr|idea|purchase|trip|admin/)?.[0];
+    showList(w === 'admin' ? 'life-admin' : w.startsWith('worr') ? 'worry' : w);
     return;
   }
 
-  // If column hint is set, skip ambiguity check
+  // Column hint — skip detection
   if (hintCat) {
     const cat = hintCat;
     hintCat   = null;
     document.getElementById('chat-hint').textContent = 'Tell me anything — I\'ll sort it';
-    typing(() => { addEntry(text, cat); addBot(rand(BOT[cat] || BOT.other)); });
+    typing(() => { addEntry(text, cat); addBot(botReply(cat)); });
     return;
   }
 
-  // Ambiguity check
-  const hits = CATS.filter(c => c.rx.test(text));
-  if (hits.length >= 2) {
+  // Score-based categorization
+  const scored = scoreCats(text);
+  if (scored.length >= 2 && scored[0].score === scored[1].score) {
     pending = text;
     state   = 'await_cat';
     typing(() => addBot(
-      `I could file this as a ${hits[0].e} ${hits[0].l.slice(0,-1)} or a ${hits[1].e} ${hits[1].l.slice(0,-1)}. Which fits better?`,
-      hits.slice(0,3).map(h => ({ label: h.e + ' ' + h.l.slice(0,-1), val: h.id }))
+      `I could file this as a ${scored[0].cat.e} ${scored[0].cat.l.slice(0,-1)} or a ${scored[1].cat.e} ${scored[1].cat.l.slice(0,-1)}. Which fits better?`,
+      scored.slice(0, 3).map(h => ({ label: h.cat.e + ' ' + h.cat.l.slice(0,-1), val: h.cat.id }))
     ));
     return;
   }
 
-  const cat = hits[0]?.id || 'other';
-  typing(() => { addEntry(text, cat); addBot(rand(BOT[cat] || BOT.other)); });
+  const cat = scored[0]?.cat.id || 'other';
+  typing(() => { addEntry(text, cat); addBot(botReply(cat)); });
 }
 
 function handleCatReply(reply) {
   state = 'ready';
   const lo = reply.toLowerCase();
-  let cat  = null;
+  let cat = null;
   for (const c of CATS) {
-    if (lo.includes(c.id) || lo.includes(c.l.toLowerCase().replace(/s$/,''))) { cat = c.id; break; }
+    if (lo.includes(c.id) || lo.includes(c.l.toLowerCase().replace(/s$/, ''))) { cat = c.id; break; }
   }
   if (!cat) cat = detectCat(pending || reply);
   const text = pending || reply;
   pending = null;
-  typing(() => { addEntry(text, cat); addBot(rand(BOT[cat] || BOT.other)); });
+  typing(() => { addEntry(text, cat); addBot(botReply(cat)); });
 }
 
 function showList(catId) {
-  const list = entries.filter(e => e.category === catId).slice(0, 4);
+  const all  = entries.filter(e => e.category === catId);
+  const list = all.slice(0, 4);
   typing(() => {
     if (!list.length) { addBot("Nothing there yet! Add something?"); return; }
     const lines = list.map(e => `• ${e.text.slice(0,55)}${e.text.length>55?'…':''}`).join('\n');
-    addBot(lines + (entries.filter(e=>e.category===catId).length > 4 ? '\n…and more on the board.' : ''));
+    addBot(lines + (all.length > 4 ? `\n…and ${all.length - 4} more on the board.` : ''));
+  });
+}
+
+function showSummary() {
+  const allCols = [...CATS, OTHER];
+  const lines = allCols
+    .map(c => ({ c, count: entries.filter(e => e.category === c.id).length }))
+    .filter(x => x.count > 0)
+    .map(x => `${x.c.e} ${x.c.l}: ${x.count}`);
+  typing(() => {
+    if (!lines.length) { addBot("The board is empty! Add something first."); return; }
+    addBot(lines.join('\n'));
+  });
+}
+
+function showByAuthor(name) {
+  const all  = entries.filter(e => e.author === name);
+  const list = all.slice(0, 5);
+  typing(() => {
+    if (!list.length) { addBot(`${name} hasn't added anything yet!`); return; }
+    const lines = list.map(e => `${meta(e.category).e} ${e.text.slice(0,50)}${e.text.length>50?'…':''}`).join('\n');
+    addBot(lines + (all.length > 5 ? `\n…and ${all.length - 5} more.` : ''));
   });
 }
 

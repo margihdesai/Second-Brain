@@ -280,6 +280,33 @@
     @keyframes cardIn { from { opacity:0; transform:scale(0.93) translateY(5px); } to { opacity:1; transform:none; } }
     .card-new { animation: cardIn 0.2s ease-out; }
 
+    /* ─── SETUP SCREEN ──────────────────────────────── */
+    #setup-screen {
+      position: fixed; inset: 0; background: var(--bg);
+      display: none; align-items: center; justify-content: center;
+      z-index: 998; padding: 16px;
+    }
+    .setup-card {
+      background: white; border-radius: 24px; padding: 36px;
+      max-width: 380px; width: 100%;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.10);
+    }
+    .setup-logo  { font-size: 36px; text-align: center; margin-bottom: 10px; }
+    .setup-title { font-size: 18px; font-weight: 700; color: var(--dark); text-align: center; margin-bottom: 4px; }
+    .setup-sub   { font-size: 13px; color: #9CA3AF; text-align: center; margin-bottom: 22px; }
+    .setup-tabs  { display: flex; background: #F3F4F6; border-radius: 50px; padding: 3px; margin-bottom: 20px; }
+    .setup-tab   { flex: 1; padding: 7px; border-radius: 50px; font-size: 13px; font-weight: 500; border: none; cursor: pointer; background: transparent; color: #9CA3AF; transition: all 0.15s; }
+    .setup-tab.active { background: white; color: var(--dark); box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+    .setup-input { width: 100%; padding: 10px 14px; border: 1px solid #E5E7EB; border-radius: 10px; font-size: 14px; font-family: inherit; outline: none; color: #374151; margin-bottom: 10px; transition: border-color 0.14s; }
+    .setup-input:focus { border-color: var(--dark); }
+    .setup-btn   { width: 100%; padding: 11px; border-radius: 50px; border: none; background: var(--dark); color: white; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.15s; margin-top: 4px; }
+    .setup-btn:hover { background: #4A3D55; }
+    .setup-error { font-size: 12px; color: #DC2626; margin-top: 10px; min-height: 18px; text-align: center; }
+
+    /* ─── INVITE MODAL ───────────────────────────────── */
+    .invite-code { font-size: 30px; font-weight: 800; letter-spacing: 8px; color: var(--dark); text-align: center; padding: 18px; background: #F3F4F6; border-radius: 12px; margin: 14px 0; }
+    .invite-hint { font-size: 13px; color: #6B7280; text-align: center; line-height: 1.5; }
+
     /* ─── TAB BAR (mobile only) ─────────────────────── */
     .tab-bar {
       display: none;
@@ -588,18 +615,39 @@
 <!-- ─── HEADER ──────────────────────────────────────── -->
 <header>
   <div class="logo">
-    🧠 Second Brain
+    🧠 <span id="board-name">Second Brain</span>
     <span class="logo-sub">shared · private</span>
   </div>
   <div class="hdr-right">
-    <div class="partner-toggle">
-      <button id="btn-m" class="ptn-btn" onclick="setPartner('Margi')">Margi</button>
-      <button id="btn-s" class="ptn-btn" onclick="setPartner('Samarth')">Samarth</button>
-    </div>
+    <button class="ghost-btn" id="invite-btn" onclick="showInvite()" style="display:none">🔗 Invite</button>
     <button class="ghost-btn digest-btn" onclick="openDigest()">🗓 Weekly Digest</button>
     <button class="ghost-btn" onclick="signOut()" id="signout-btn" style="display:none">Sign out</button>
   </div>
 </header>
+
+<!-- ─── SETUP SCREEN ──────────────────────────────────── -->
+<div id="setup-screen">
+  <div class="setup-card">
+    <div class="setup-logo">🧠</div>
+    <div class="setup-title">Welcome to Second Brain</div>
+    <div class="setup-sub">Create a shared board or join one with an invite code.</div>
+    <div class="setup-tabs">
+      <button class="setup-tab active" id="tab-create" onclick="setupTab('create')">Create board</button>
+      <button class="setup-tab" id="tab-join" onclick="setupTab('join')">Join board</button>
+    </div>
+    <div id="panel-create">
+      <input class="setup-input" id="inp-board-name" placeholder="Board name (e.g. Our Home)" maxlength="40">
+      <input class="setup-input" id="inp-create-name" placeholder="Your name" maxlength="20">
+      <button class="setup-btn" onclick="doCreate()">Create board →</button>
+    </div>
+    <div id="panel-join" style="display:none">
+      <input class="setup-input" id="inp-code" placeholder="6-letter invite code" maxlength="6" style="text-transform:uppercase;letter-spacing:3px">
+      <input class="setup-input" id="inp-join-name" placeholder="Your name" maxlength="20">
+      <button class="setup-btn" onclick="doJoin()">Join board →</button>
+    </div>
+    <div class="setup-error" id="setup-error"></div>
+  </div>
+</div>
 
 <!-- ─── TAB BAR (mobile) ──────────────────────────────── -->
 <div class="tab-bar" id="tab-bar"></div>
@@ -629,6 +677,17 @@
   </div>
 </div>
 
+<!-- ─── INVITE OVERLAY ────────────────────────────────── -->
+<div class="overlay" id="invite-overlay" onclick="maybeCloseInvite(event)">
+  <div class="modal">
+    <div class="modal-head">
+      <span class="modal-title">🔗 Invite someone</span>
+      <button class="modal-close" onclick="closeInvite()">×</button>
+    </div>
+    <div id="invite-body"></div>
+  </div>
+</div>
+
 <!-- ─── DIGEST OVERLAY ────────────────────────────────── -->
 <div class="overlay" id="overlay" onclick="maybeClose(event)">
   <div class="modal" id="modal">
@@ -655,12 +714,14 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
-const entriesRef = db.ref('entries');
+let entriesRef   = null;
+let currentUser  = null;
+let household    = null;
 
 // ────────────────────────────────────────────────────────────
 //  AUTH
 // ────────────────────────────────────────────────────────────
-const ALLOWED = ['margihdesai@gmail.com', 'samarthjmodi@gmail.com'];
+const MEMBER_COLORS = ['#E07A5F','#3D8B8F','#6B4E71','#E9C46A','#2A9D8F','#E76F51'];
 
 function signIn() {
   try {
@@ -674,29 +735,136 @@ function signIn() {
 }
 
 function signOut() {
+  if (entriesRef) { entriesRef.off(); entriesRef = null; }
+  household = null; entries = [];
   firebase.auth().signOut();
 }
 
-firebase.auth().onAuthStateChanged(user => {
-  if (user && ALLOWED.includes(user.email)) {
+firebase.auth().onAuthStateChanged(async user => {
+  if (user) {
+    currentUser = user;
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('signout-btn').style.display = '';
-    const name = user.email === 'margihdesai@gmail.com' ? 'Margi' : 'Samarth';
-    setPartner(name);
+    await checkHousehold(user);
   } else {
+    currentUser = null;
     document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('setup-screen').style.display = 'none';
     document.getElementById('signout-btn').style.display = 'none';
-    if (user) {
-      firebase.auth().signOut();
-      document.getElementById('login-error').textContent = 'Access restricted to authorised users only.';
-    }
+    document.getElementById('invite-btn').style.display = 'none';
   }
 });
+
+async function checkHousehold(user) {
+  const snap = await db.ref(`userHouseholds/${user.uid}`).once('value');
+  const hid  = snap.val();
+  if (hid) {
+    await loadHousehold(hid);
+  } else {
+    document.getElementById('setup-screen').style.display = 'flex';
+  }
+}
+
+async function loadHousehold(hid) {
+  const snap = await db.ref(`households/${hid}`).once('value');
+  household  = { id: hid, ...snap.val() };
+  if (entriesRef) entriesRef.off();
+  entriesRef = db.ref(`households/${hid}/entries`);
+
+  const myMember = household.members?.[currentUser.uid];
+  partner = myMember?.displayName || currentUser.displayName || 'You';
+
+  document.getElementById('board-name').textContent = household.name || 'Second Brain';
+  document.getElementById('setup-screen').style.display = 'none';
+  document.getElementById('invite-btn').style.display = '';
+
+  entriesRef.on('value', snap => {
+    const data = snap.val();
+    entries = data ? Object.values(data).sort((a,b) => new Date(b.ts)-new Date(a.ts)) : [];
+    renderBoard();
+  });
+
+  setPartner(partner);
+}
+
+function getMemberColor(displayName) {
+  if (!household?.members) return '#888';
+  const m = Object.values(household.members).find(m => m.displayName === displayName);
+  return m?.color || '#888';
+}
+
+// ─── SETUP ───────────────────────────────────────────────────
+function setupTab(tab) {
+  document.getElementById('panel-create').style.display = tab === 'create' ? '' : 'none';
+  document.getElementById('panel-join').style.display   = tab === 'join'   ? '' : 'none';
+  document.getElementById('tab-create').className = 'setup-tab' + (tab === 'create' ? ' active' : '');
+  document.getElementById('tab-join').className   = 'setup-tab' + (tab === 'join'   ? ' active' : '');
+  document.getElementById('setup-error').textContent = '';
+}
+
+async function doCreate() {
+  const boardName = document.getElementById('inp-board-name').value.trim();
+  const myName    = document.getElementById('inp-create-name').value.trim();
+  const errEl     = document.getElementById('setup-error');
+  if (!boardName || !myName) { errEl.textContent = 'Please fill in all fields.'; return; }
+  errEl.textContent = 'Creating…';
+  try {
+    const uid  = currentUser.uid;
+    const code = Math.random().toString(36).substr(2,6).toUpperCase();
+    const hid  = db.ref('households').push().key;
+    await db.ref(`households/${hid}`).set({
+      name: boardName, inviteCode: code, createdAt: new Date().toISOString(), createdBy: uid,
+      members: { [uid]: { displayName: myName, email: currentUser.email, color: MEMBER_COLORS[0], joinedAt: new Date().toISOString() } }
+    });
+    await db.ref(`userHouseholds/${uid}`).set(hid);
+    await loadHousehold(hid);
+  } catch(e) { document.getElementById('setup-error').textContent = 'Error: ' + e.message; }
+}
+
+async function doJoin() {
+  const code   = document.getElementById('inp-code').value.trim().toUpperCase();
+  const myName = document.getElementById('inp-join-name').value.trim();
+  const errEl  = document.getElementById('setup-error');
+  if (!code || !myName) { errEl.textContent = 'Please fill in all fields.'; return; }
+  errEl.textContent = 'Looking up code…';
+  try {
+    const snap = await db.ref('households').orderByChild('inviteCode').equalTo(code).once('value');
+    if (!snap.exists()) { errEl.textContent = 'Invalid invite code. Check and try again.'; return; }
+    const hid     = Object.keys(snap.val())[0];
+    const members = snap.val()[hid].members || {};
+    const colorIdx = Math.min(Object.keys(members).length, MEMBER_COLORS.length - 1);
+    const uid = currentUser.uid;
+    await db.ref(`households/${hid}/members/${uid}`).set({
+      displayName: myName, email: currentUser.email, color: MEMBER_COLORS[colorIdx], joinedAt: new Date().toISOString()
+    });
+    await db.ref(`userHouseholds/${uid}`).set(hid);
+    await loadHousehold(hid);
+  } catch(e) { document.getElementById('setup-error').textContent = 'Error: ' + e.message; }
+}
+
+// ─── INVITE ──────────────────────────────────────────────────
+function showInvite() {
+  const members = Object.values(household?.members || {});
+  document.getElementById('invite-body').innerHTML = `
+    <p style="font-size:13px;color:#6B7280;margin-bottom:8px;">Share this code with anyone you want to invite:</p>
+    <div class="invite-code">${household?.inviteCode || '------'}</div>
+    <p class="invite-hint">They sign in, tap "Join board", and enter this code.</p>
+    <div style="margin-top:18px;border-top:1px solid #F3F4F6;padding-top:14px;">
+      <div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:8px;">Members (${members.length})</div>
+      ${members.map(m=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+        <div style="width:24px;height:24px;border-radius:50%;background:${m.color};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:white;">${m.displayName[0]}</div>
+        <span style="font-size:13px;color:#374151;">${m.displayName}</span>
+        ${m.email===currentUser?.email?'<span style="font-size:11px;color:#9CA3AF;">(you)</span>':''}
+      </div>`).join('')}
+    </div>`;
+  document.getElementById('invite-overlay').classList.add('on');
+}
+function closeInvite()       { document.getElementById('invite-overlay').classList.remove('on'); }
+function maybeCloseInvite(ev){ if (ev.target===document.getElementById('invite-overlay')) closeInvite(); }
 
 // ────────────────────────────────────────────────────────────
 //  DATA
 // ────────────────────────────────────────────────────────────
-const PC = { Margi: '#E07A5F', Samarth: '#3D8B8F' };
 
 const CATS = [
   { id:'task', e:'✅', l:'Tasks',
@@ -761,10 +929,6 @@ function botReply(cat) {
   return replies[Math.floor(Math.random() * replies.length)];
 }
 
-const GREET = {
-  Margi:   ["Hey Margi! 👋 What's on your mind? Just tell me — I'll sort it.", "Hi Margi! Dump anything here and I'll organise it 🧠", "Hey! What do you want to get off your mind?"],
-  Samarth: ["Hey Samarth! 👋 What's on your mind? I'll take care of sorting it.", "Hi Samarth! Tell me what you're thinking — I'll organise it 🧠", "Hey! What's on your mind?"],
-};
 
 let partner   = 'Margi';
 let entries   = [];
@@ -778,21 +942,10 @@ function isMobile() { return window.innerWidth <= 640; }
 function setTab(catId) { activeTab = catId; renderBoard(); }
 
 function saveEntries() {
+  if (!entriesRef) return;
   const obj = {};
   entries.forEach(e => { obj[e.id] = e; });
   entriesRef.set(obj);
-}
-
-function seedEntries() {
-  const n = Date.now();
-  return [
-    { id:'s1', text:"Look into flights to Bali — saw a deal for October, might go fast.",         author:'Samarth', category:'trip',       ts: new Date(n-1*36e5).toISOString(), acked:false, ackedBy:null },
-    { id:'s2', text:"Worried we've been spending too much eating out. Should we set a budget?",   author:'Margi',   category:'worry',      ts: new Date(n-2*36e5).toISOString(), acked:true,  ackedBy:'Samarth' },
-    { id:'s3', text:"Renew car insurance before the 30th — notice is on the fridge.",             author:'Margi',   category:'life-admin', ts: new Date(n-5*36e5).toISOString(), acked:false, ackedBy:null },
-    { id:'s4', text:"What if we did a weekly no-phone dinner? Just the two of us catching up.",   author:'Samarth', category:'idea',       ts: new Date(n-86400000).toISOString(),   acked:false, ackedBy:null },
-    { id:'s5', text:"Research new blenders under $80 — old one is dying.",                        author:'Margi',   category:'purchase',   ts: new Date(n-2*864e5).toISOString(),    acked:true,  ackedBy:'Samarth' },
-    { id:'s6', text:"Schedule a vet appointment for Mochi — annual checkup due.",                 author:'Samarth', category:'task',       ts: new Date(n-3*864e5).toISOString(),    acked:false, ackedBy:null },
-  ];
 }
 
 // ────────────────────────────────────────────────────────────
@@ -837,8 +990,6 @@ function detectCat(text) {
 // ────────────────────────────────────────────────────────────
 function setPartner(name) {
   partner = name;
-  document.getElementById('btn-m').className = 'ptn-btn' + (name==='Margi'   ? ' m-on' : '');
-  document.getElementById('btn-s').className = 'ptn-btn' + (name==='Samarth' ? ' s-on' : '');
   renderBoard();
   if (chatOpen) resetChat();
 }
@@ -911,7 +1062,7 @@ function drop(ev, cat) {
 //  RENDER BOARD
 // ────────────────────────────────────────────────────────────
 function renderCard(e) {
-  const col   = PC[e.author] || '#888';
+  const col   = getMemberColor(e.author);
   const isOwn = e.author === partner;
   const done  = !!e.completed;
 
@@ -1006,7 +1157,11 @@ function openChatFor(cat) {
 }
 
 function greet() {
-  const lines = GREET[partner] || GREET.Margi;
+  const lines = [
+    `Hey ${partner}! 👋 What's on your mind? Just tell me — I'll sort it.`,
+    `Hi ${partner}! Dump anything here and I'll organise it 🧠`,
+    `Hey! What do you want to get off your mind?`,
+  ];
   addBot(rand(lines));
 }
 
@@ -1073,11 +1228,11 @@ function processMsg(text) {
     typing(() => addBot(`${entries.length} items on the board total. ${unseen} new for you.`));
     return;
   }
-  // Show by author
-  if (/\b(what did (samarth|margi) (add|post|say)|show (samarth|margi)'?s)\b/.test(lo)) {
-    const name = lo.match(/samarth|margi/)?.[0];
-    showByAuthor(name.charAt(0).toUpperCase() + name.slice(1));
-    return;
+  // Show by author — match any household member name
+  if (/\b(what did|show)\b/.test(lo) && household?.members) {
+    const memberNames = Object.values(household.members).map(m => m.displayName);
+    const matched = memberNames.find(n => lo.includes(n.toLowerCase()));
+    if (matched) { showByAuthor(matched); return; }
   }
   // Show category
   if (/\b(show|list|what).*(task|worr|idea|purchase|trip|admin)\b/.test(lo)) {
@@ -1239,19 +1394,6 @@ function openDigest() {
 function closeOverlay() { document.getElementById('overlay').classList.remove('on'); }
 function maybeClose(ev) { if (ev.target === document.getElementById('overlay')) closeOverlay(); }
 
-// ────────────────────────────────────────────────────────────
-//  INIT
-// ────────────────────────────────────────────────────────────
-entriesRef.on('value', (snapshot) => {
-  const data = snapshot.val();
-  if (data) {
-    entries = Object.values(data).sort((a, b) => new Date(b.ts) - new Date(a.ts));
-  } else {
-    entries = seedEntries();
-    saveEntries();
-  }
-  renderBoard();
-});
 </script>
 </body>
 </html>

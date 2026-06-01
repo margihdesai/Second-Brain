@@ -336,10 +336,42 @@
     .tab-btn.active { color: var(--dark); border-bottom-color: var(--dark); font-weight: 600; }
 
     /* ─── MOBILE ─────────────────────────────────────── */
+    /* ─── DUE DATE BADGE ───────────────────────────────── */
+    .card-due {
+      font-size: 10px; padding: 1px 7px; border-radius: 50px;
+      background: #F3F4F6; color: #6B7280; display: inline-block; margin-bottom: 4px;
+    }
+    .card-due.overdue { background: #FEF2F2; color: #DC2626; font-weight: 600; }
+    .card.overdue { border-left: 2px solid #EF4444; }
+    .card { cursor: pointer; }
+
+    /* ─── NOTES PREVIEW ────────────────────────────────── */
+    .card-notes { font-size: 11px; color: #9CA3AF; margin-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* ─── MIC BUTTON ────────────────────────────────────── */
+    .chat-mic {
+      width: 34px; height: 34px; border-radius: 50%; border: none;
+      background: #F3F4F6; color: #6B7280; cursor: pointer; font-size: 15px;
+      flex-shrink: 0; transition: all 0.14s; display: flex; align-items: center; justify-content: center;
+    }
+    .chat-mic:hover { background: #E5E7EB; }
+    .chat-mic.listening { background: #FEF2F2; color: #DC2626; animation: vspulse 0.9s infinite; }
+    @keyframes vspulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.12)} }
+
+    /* ─── INSIGHTS ──────────────────────────────────────── */
+    .ins-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 20px; }
+    .ins-stat { border-radius: 10px; padding: 14px; text-align: center; }
+    .ins-stat-n { font-size: 24px; font-weight: 700; }
+    .ins-stat-l { font-size: 11px; color: #9CA3AF; margin-top: 2px; }
+    .ins-bar-row { display:flex; align-items:center; gap:8px; margin-bottom:7px; }
+    .ins-bar-track { flex:1; background:#F3F4F6; border-radius:50px; height:8px; }
+    .ins-bar-fill { height:100%; border-radius:50px; min-width:4px; }
+
     @media (max-width: 640px) {
       header { padding: 0 14px; }
       .logo-sub { display: none; }
       .ghost-btn.digest-btn { display: none; }
+      .ghost-btn.insights-btn { display: none; }
 
       .tab-bar { display: flex; }
 
@@ -623,6 +655,7 @@
   </div>
   <div class="hdr-right">
     <button class="ghost-btn" id="invite-btn" onclick="showInvite()" style="display:none">🔗 Invite</button>
+    <button class="ghost-btn insights-btn" onclick="openInsights()">📊 Insights</button>
     <button class="ghost-btn digest-btn" onclick="openDigest()">🗓 Weekly Digest</button>
     <button class="ghost-btn" onclick="signOut()" id="signout-btn" style="display:none">Sign out</button>
   </div>
@@ -676,6 +709,7 @@
       placeholder="What's on your mind?"
       onkeydown="chatKey(event)"
       oninput="grow(this)"></textarea>
+    <button class="chat-mic" id="mic-btn" onclick="toggleVoice()" title="Speak your thought">🎤</button>
     <button class="chat-send" onclick="send()">↑</button>
   </div>
 </div>
@@ -699,6 +733,28 @@
       <button class="modal-close" onclick="closeInvite()">×</button>
     </div>
     <div id="invite-body"></div>
+  </div>
+</div>
+
+<!-- ─── CARD DETAIL OVERLAY ───────────────────────────── -->
+<div class="overlay" id="detail-overlay" onclick="maybeCloseDetail(event)">
+  <div class="modal">
+    <div class="modal-head">
+      <span class="modal-title" id="detail-cat-label"></span>
+      <button class="modal-close" onclick="closeCardDetail()">×</button>
+    </div>
+    <div id="detail-body"></div>
+  </div>
+</div>
+
+<!-- ─── INSIGHTS OVERLAY ──────────────────────────────── -->
+<div class="overlay" id="insights-overlay" onclick="maybeCloseInsights(event)">
+  <div class="modal">
+    <div class="modal-head">
+      <span class="modal-title">📊 Insights</span>
+      <button class="modal-close" onclick="closeInsights()">×</button>
+    </div>
+    <div id="insights-body"></div>
   </div>
 </div>
 
@@ -1016,10 +1072,29 @@ function addEntry(text, cat) {
   const e = { id: Date.now().toString(), text: text.trim(), author: partner,
               category: cat, ts: new Date().toISOString(),
               acked: false, ackedBy: null,
-              completed: false, completedBy: null, completedAt: null };
+              completed: false, completedBy: null, completedAt: null,
+              dueDate: null, notes: '' };
   entries.unshift(e);
   saveEntries();
   return e;
+}
+
+function formatDue(isoDate) {
+  const d     = new Date(isoDate);
+  const today = new Date(); today.setHours(0,0,0,0);
+  const due   = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const diff  = Math.round((due - today) / 86400000);
+  if (diff < 0)  return `Overdue ${Math.abs(diff)}d`;
+  if (diff === 0) return 'Due today';
+  if (diff === 1) return 'Due tomorrow';
+  return 'Due ' + d.toLocaleDateString('en-US', {month:'short', day:'numeric'});
+}
+
+function isOverdue(e) {
+  if (!e.dueDate || e.completed) return false;
+  const due   = new Date(e.dueDate);
+  const today = new Date(); today.setHours(0,0,0,0);
+  return due < today;
 }
 
 function ackEntry(id) {
@@ -1077,9 +1152,11 @@ function drop(ev, cat) {
 //  RENDER BOARD
 // ────────────────────────────────────────────────────────────
 function renderCard(e) {
-  const col   = getMemberColor(e.author);
-  const isOwn = e.author === partner;
-  const done  = !!e.completed;
+  const col    = getMemberColor(e.author);
+  const isOwn  = e.author === partner;
+  const done   = !!e.completed;
+  const over   = isOverdue(e);
+  const due    = e.dueDate ? formatDue(e.dueDate) : null;
 
   const ackBtn = !isOwn
     ? `<button class="card-btn ack" onclick="event.stopPropagation();ackEntry('${e.id}')">${e.acked ? '↩' : '👋'}</button>`
@@ -1088,15 +1165,20 @@ function renderCard(e) {
   const cmpBtn = `<button class="card-btn cmp" title="${done ? 'Undo complete' : 'Mark complete'}" onclick="event.stopPropagation();completeEntry('${e.id}')">${done ? '↩' : '✓'}</button>`;
   const rsnBtn = `<button class="card-btn rsn" title="Move to…" onclick="event.stopPropagation();openReassign('${e.id}')">⇢</button>`;
 
+  const dueHtml   = due ? `<span class="card-due ${over?'overdue':''}">${due}</span>` : '';
+  const notesHtml = e.notes ? `<div class="card-notes">📝 ${esc(e.notes)}</div>` : '';
+
   return `
-  <div class="card ${e.acked?'acked':''} ${done?'done':''} card-new" id="c-${e.id}"
+  <div class="card ${e.acked?'acked':''} ${done?'done':''} ${over?'overdue':''} card-new" id="c-${e.id}"
     draggable="true"
     ondragstart="dragStart(event,'${e.id}')"
-    ondragend="dragEnd(event)">
+    ondragend="dragEnd(event)"
+    onclick="openCardDetail('${e.id}')">
     <div class="card-row1">
       <div class="card-av" style="background:${col}">${e.author[0]}</div>
       <div class="card-text">${esc(e.text)}</div>
     </div>
+    ${dueHtml || notesHtml ? `<div style="padding:0 0 2px 28px;">${dueHtml}${notesHtml}</div>` : ''}
     <div class="card-row2">
       <span class="card-time">${ago(e.ts)}</span>
       <div class="card-acts">
@@ -1439,7 +1521,7 @@ function openDigest() {
           <div style="font-size:12.5px;font-weight:600;color:#374151;margin-bottom:7px;">${cat.e} ${cat.l} <span style="color:#9CA3AF;font-weight:400;">(${byCat[cat.id].length})</span></div>
           ${byCat[cat.id].map(e=>`
             <div style="display:flex;gap:8px;margin-bottom:5px;font-size:12.5px;color:#4B5563;line-height:1.4;">
-              <span style="width:6px;height:6px;border-radius:50%;background:${PC[e.author]||'#ccc'};flex-shrink:0;margin-top:5px;"></span>
+              <span style="width:6px;height:6px;border-radius:50%;background:${getMemberColor(e.author)};flex-shrink:0;margin-top:5px;"></span>
               <span>${esc(e.text)}</span>
             </div>`).join('')}
         </div>`).join('')}
@@ -1453,6 +1535,194 @@ function openDigest() {
 
 function closeOverlay() { document.getElementById('overlay').classList.remove('on'); }
 function maybeClose(ev) { if (ev.target === document.getElementById('overlay')) closeOverlay(); }
+
+// Fix digest dot color (uses getMemberColor instead of missing PC var)
+function digestDot(author) { return getMemberColor(author) || '#ccc'; }
+
+// ────────────────────────────────────────────────────────────
+//  CARD DETAIL
+// ────────────────────────────────────────────────────────────
+let detailTarget = null;
+
+function openCardDetail(id) {
+  detailTarget = id;
+  const e = entries.find(x => x.id === id);
+  if (!e) return;
+  const m    = meta(e.category);
+  const over = isOverdue(e);
+
+  document.getElementById('detail-cat-label').innerHTML = `${m.e} ${m.l}`;
+  document.getElementById('detail-body').innerHTML = `
+    <div style="margin-bottom:14px;">
+      <div style="font-size:13px;font-weight:600;color:#374151;margin-bottom:5px;">Entry</div>
+      <div style="font-size:13.5px;color:#1F2937;line-height:1.5;background:#F9FAFB;border-radius:8px;padding:10px 12px;">${esc(e.text)}</div>
+    </div>
+    <div style="margin-bottom:14px;">
+      <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:5px;">Due date</label>
+      <input type="date" id="detail-due" value="${e.dueDate||''}"
+        style="width:100%;padding:8px 12px;border:1px solid ${over?'#FCA5A5':'#E5E7EB'};border-radius:8px;font-size:13px;font-family:inherit;outline:none;color:#374151;background:${over?'#FEF2F2':'white'};">
+    </div>
+    <div style="margin-bottom:20px;">
+      <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:5px;">Notes</label>
+      <textarea id="detail-notes" rows="4"
+        style="width:100%;padding:8px 12px;border:1px solid #E5E7EB;border-radius:8px;font-size:13px;font-family:inherit;resize:vertical;outline:none;color:#374151;line-height:1.45;"
+        placeholder="Add context, links, details…">${esc(e.notes||'')}</textarea>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <span style="font-size:11px;color:#9CA3AF;">Added by ${esc(e.author)} · ${ago(e.ts)}</span>
+      <button onclick="saveCardDetail()"
+        style="padding:8px 20px;border-radius:50px;border:none;background:#2D2535;color:white;font-size:13px;font-weight:600;cursor:pointer;">Save</button>
+    </div>`;
+
+  document.getElementById('detail-overlay').classList.add('on');
+}
+
+function saveCardDetail() {
+  const e = entries.find(x => x.id === detailTarget);
+  if (!e) return;
+  e.dueDate = document.getElementById('detail-due').value || null;
+  e.notes   = document.getElementById('detail-notes').value;
+  saveEntries();
+  closeCardDetail();
+}
+
+function closeCardDetail()       { detailTarget = null; document.getElementById('detail-overlay').classList.remove('on'); }
+function maybeCloseDetail(ev)    { if (ev.target === document.getElementById('detail-overlay')) closeCardDetail(); }
+
+// ────────────────────────────────────────────────────────────
+//  INSIGHTS
+// ────────────────────────────────────────────────────────────
+function openInsights() {
+  const total     = entries.length;
+  const completed = entries.filter(e => e.completed).length;
+  const pending   = total - completed;
+  const rate      = total > 0 ? Math.round(completed / total * 100) : 0;
+  const overdue   = entries.filter(e => isOverdue(e)).length;
+  const week7     = entries.filter(e => Date.now() - new Date(e.ts) < 7*864e5).length;
+
+  // By category (active only)
+  const byCat  = {};
+  [...CATS, OTHER].forEach(c => { byCat[c.id] = entries.filter(e => e.category===c.id && !e.completed).length; });
+  const maxCat = Math.max(...Object.values(byCat), 1);
+
+  // By member
+  const byMember = {};
+  entries.forEach(e => { byMember[e.author] = (byMember[e.author]||0) + 1; });
+  const members  = Object.entries(byMember).sort((a,b) => b[1]-a[1]);
+  const maxM     = Math.max(...members.map(m=>m[1]), 1);
+
+  const catBars = [...CATS, OTHER].filter(c => byCat[c.id] > 0).map(c => `
+    <div class="ins-bar-row">
+      <span style="font-size:14px;width:20px;flex-shrink:0;">${c.e}</span>
+      <span style="font-size:11px;color:#6B7280;width:65px;flex-shrink:0;">${c.l}</span>
+      <div class="ins-bar-track"><div class="ins-bar-fill" style="width:${Math.round(byCat[c.id]/maxCat*100)}%;background:#6B4E71;"></div></div>
+      <span style="font-size:12px;font-weight:600;color:#374151;width:18px;text-align:right;">${byCat[c.id]}</span>
+    </div>`).join('') || '<div style="font-size:12px;color:#9CA3AF;padding:8px 0;">Board is empty — add something!</div>';
+
+  const memberBars = members.map(([name, count]) => {
+    const col = getMemberColor(name);
+    return `<div class="ins-bar-row">
+      <div style="width:22px;height:22px;border-radius:50%;background:${col};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:white;flex-shrink:0;">${name[0]}</div>
+      <span style="font-size:12px;color:#6B7280;flex:1;">${esc(name)}</span>
+      <div class="ins-bar-track" style="max-width:90px;"><div class="ins-bar-fill" style="width:${Math.round(count/maxM*100)}%;background:${col};"></div></div>
+      <span style="font-size:12px;font-weight:600;color:#374151;width:18px;text-align:right;">${count}</span>
+    </div>`;
+  }).join('');
+
+  document.getElementById('insights-body').innerHTML = `
+    <div class="ins-grid">
+      <div class="ins-stat" style="background:#F9FAFB;">
+        <div class="ins-stat-n" style="color:#1F2937;">${pending}</div>
+        <div class="ins-stat-l">Pending</div>
+      </div>
+      <div class="ins-stat" style="background:#F0FDF4;">
+        <div class="ins-stat-n" style="color:#16A34A;">${completed}</div>
+        <div class="ins-stat-l">Completed</div>
+      </div>
+      <div class="ins-stat" style="background:${overdue>0?'#FEF2F2':'#F9FAFB'};">
+        <div class="ins-stat-n" style="color:${overdue>0?'#DC2626':'#1F2937'};">${overdue}</div>
+        <div class="ins-stat-l">Overdue</div>
+      </div>
+    </div>
+
+    <div style="margin-bottom:20px;padding:14px;background:#F5F3FF;border-radius:12px;display:flex;align-items:center;gap:14px;">
+      <div style="width:52px;height:52px;border-radius:50%;background:conic-gradient(#6D28D9 ${rate*3.6}deg,#E5E7EB 0deg);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <div style="width:38px;height:38px;border-radius:50%;background:#F5F3FF;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#6D28D9;">${rate}%</div>
+      </div>
+      <div>
+        <div style="font-size:13px;font-weight:600;color:#374151;">Completion rate</div>
+        <div style="font-size:11.5px;color:#9CA3AF;margin-top:3px;">${completed} of ${total} items done · ${week7} added this week</div>
+      </div>
+    </div>
+
+    <div style="margin-bottom:20px;">
+      <div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:10px;">Active by category</div>
+      ${catBars}
+    </div>
+
+    ${members.length ? `<div>
+      <div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:10px;">Contributions by member</div>
+      ${memberBars}
+    </div>` : ''}`;
+
+  document.getElementById('insights-overlay').classList.add('on');
+}
+
+function closeInsights()         { document.getElementById('insights-overlay').classList.remove('on'); }
+function maybeCloseInsights(ev)  { if (ev.target === document.getElementById('insights-overlay')) closeInsights(); }
+
+// ────────────────────────────────────────────────────────────
+//  VOICE INPUT
+// ────────────────────────────────────────────────────────────
+let recognition = null;
+let listening   = false;
+
+function initVoice() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return false;
+  recognition = new SR();
+  recognition.continuous      = false;
+  recognition.interimResults  = false;
+  recognition.lang            = 'en-US';
+  recognition.onresult = ev => {
+    const text = ev.results[0][0].transcript;
+    const ta   = document.getElementById('chat-ta');
+    ta.value   = text;
+    grow(ta);
+    setListening(false);
+    setTimeout(send, 120);
+  };
+  recognition.onerror = () => setListening(false);
+  recognition.onend   = () => setListening(false);
+  return true;
+}
+
+function toggleVoice() {
+  if (!recognition && !initVoice()) {
+    if (!chatOpen) toggleChat();
+    setTimeout(() => addBot("Voice input isn't supported in this browser. Try Chrome or Safari."), 300);
+    return;
+  }
+  if (listening) {
+    recognition.stop();
+    setListening(false);
+  } else {
+    if (!chatOpen) toggleChat();
+    setTimeout(() => {
+      try { recognition.start(); setListening(true); }
+      catch(err) { setListening(false); }
+    }, chatOpen ? 0 : 280);
+  }
+}
+
+function setListening(val) {
+  listening = val;
+  const btn = document.getElementById('mic-btn');
+  if (!btn) return;
+  btn.classList.toggle('listening', val);
+  btn.title       = val ? 'Listening… tap to stop' : 'Speak your thought';
+  btn.textContent = val ? '⏹' : '🎤';
+}
 
 </script>
 </body>

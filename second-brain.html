@@ -832,6 +832,13 @@ async function checkHousehold(user) {
     await loadHousehold(hid);
   } else {
     document.getElementById('setup-screen').style.display = 'flex';
+    // Pre-fill invite code from URL param ?code=XXXXXX
+    const urlCode = new URLSearchParams(window.location.search).get('code');
+    if (urlCode) {
+      setupTab('join');
+      document.getElementById('inp-code').value = urlCode.toUpperCase();
+      document.getElementById('inp-join-name').focus();
+    }
   }
 }
 
@@ -914,11 +921,24 @@ async function doJoin() {
 
 // ─── INVITE ──────────────────────────────────────────────────
 function showInvite() {
-  const members = Object.values(household?.members || {});
+  const members  = Object.values(household?.members || {});
+  const code     = household?.inviteCode || '------';
+  const joinLink = `https://margihdesai.github.io/Second-Brain/second-brain.html?code=${code}`;
+
   document.getElementById('invite-body').innerHTML = `
     <p style="font-size:13px;color:#6B7280;margin-bottom:8px;">Share this code with anyone you want to invite:</p>
-    <div class="invite-code">${household?.inviteCode || '------'}</div>
-    <p class="invite-hint">They sign in, tap "Join board", and enter this code.</p>
+    <div class="invite-code">${code}</div>
+    <p class="invite-hint">They sign in, tap "Join board", and enter this code — or just send them the link below.</p>
+
+    <div style="margin-top:16px;background:#F9FAFB;border:1px solid #E5E7EB;border-radius:10px;padding:12px 14px;">
+      <div style="font-size:11px;font-weight:600;color:#6B7280;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em;">Direct join link</div>
+      <div style="font-size:12px;color:#374151;word-break:break-all;line-height:1.5;margin-bottom:10px;">${joinLink}</div>
+      <button id="copy-link-btn" onclick="copyInviteLink('${joinLink}')"
+        style="width:100%;padding:9px;border-radius:8px;border:none;background:#2D2535;color:white;font-size:13px;font-weight:600;cursor:pointer;">
+        📋 Copy link
+      </button>
+    </div>
+
     <div style="margin-top:18px;border-top:1px solid #F3F4F6;padding-top:14px;">
       <div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:8px;">Members (${members.length})</div>
       ${members.map(m=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
@@ -929,6 +949,16 @@ function showInvite() {
     </div>`;
   document.getElementById('invite-overlay').classList.add('on');
 }
+function copyInviteLink(url) {
+  navigator.clipboard.writeText(url).then(() => {
+    const btn = document.getElementById('copy-link-btn');
+    if (btn) { btn.textContent = '✓ Copied!'; setTimeout(() => { btn.textContent = '📋 Copy link'; }, 2000); }
+  }).catch(() => {
+    const btn = document.getElementById('copy-link-btn');
+    if (btn) btn.textContent = 'Copy failed — select the link above';
+  });
+}
+
 function closeInvite()       { document.getElementById('invite-overlay').classList.remove('on'); }
 function maybeCloseInvite(ev){ if (ev.target===document.getElementById('invite-overlay')) closeInvite(); }
 

@@ -3,1457 +3,284 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Second Brain</title>
-  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
+  <title>Second Brain — The shared board your household needs</title>
+  <meta name="description" content="Tasks, ideas, worries, and plans — captured in seconds, organised automatically, visible to everyone at home. In real time.">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg:       #EEEAE3;
-      --hdr:      56px;
-      --col-w:    264px;
-      --gap:      10px;
-      --r:        12px;
-      --margi:    #E07A5F;
-      --samarth:  #3D8B8F;
-      --dark:     #2D2535;
+      --bg:     #EEEAE3;
+      --dark:   #2D2535;
+      --coral:  #E07A5F;
+      --teal:   #3D8B8F;
+      --muted:  #6B7280;
+      --border: #E5E7EB;
     }
 
+    html { scroll-behavior: smooth; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: var(--bg);
-      height: 100vh;
-      overflow: hidden;
-      color: #1F2937;
+      background: var(--bg); color: var(--dark); overflow-x: hidden;
     }
 
-    /* ─── LOGIN SCREEN ──────────────────────────── */
-    #login-screen {
-      position: fixed;
-      inset: 0;
-      background: var(--bg);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 999;
-    }
-    .login-card {
-      background: white;
-      border-radius: 24px;
-      padding: 40px 36px;
-      text-align: center;
-      box-shadow: 0 8px 40px rgba(0,0,0,0.10);
-      max-width: 340px;
-      width: 100%;
-    }
-    .login-logo { font-size: 42px; margin-bottom: 12px; }
-    .login-title { font-size: 20px; font-weight: 700; color: var(--dark); margin-bottom: 6px; }
-    .login-sub { font-size: 13px; color: #9CA3AF; margin-bottom: 28px; }
-    .google-btn {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      width: 100%;
-      padding: 11px 20px;
-      border-radius: 50px;
-      border: 1px solid #E5E7EB;
-      background: white;
-      font-size: 14px;
-      font-weight: 500;
-      color: #374151;
-      cursor: pointer;
-      transition: all 0.15s;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-    }
-    .google-btn:hover { background: #F9FAFB; box-shadow: 0 2px 8px rgba(0,0,0,0.10); }
-    .login-error { font-size: 12px; color: #DC2626; margin-top: 14px; min-height: 18px; }
-
-    /* ─── HEADER ─────────────────────────────────── */
-    header {
-      height: var(--hdr);
-      background: white;
-      border-bottom: 1px solid #E5E7EB;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 20px;
-      box-shadow: 0 1px 6px rgba(0,0,0,0.06);
-      position: relative;
-      z-index: 10;
-    }
-
-    .logo { font-size: 15px; font-weight: 700; color: var(--dark); display: flex; align-items: center; gap: 8px; }
-    .logo-sub { font-size: 11px; font-weight: 400; color: #9CA3AF; letter-spacing: 0.03em; }
-
-    .hdr-right { display: flex; align-items: center; gap: 8px; }
-
-    .partner-toggle {
-      display: flex;
-      background: #F3F4F6;
-      border-radius: 50px;
-      padding: 3px;
-      gap: 2px;
-    }
-    .ptn-btn {
-      padding: 4px 13px;
-      border-radius: 50px;
-      font-size: 12px;
-      font-weight: 500;
-      cursor: pointer;
-      border: none;
-      background: transparent;
-      color: #9CA3AF;
-      transition: all 0.15s;
-    }
-    .ptn-btn.m-on { background: white; color: #b85a43; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
-    .ptn-btn.s-on { background: white; color: #2e6b6e; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
-
-    .ghost-btn {
-      padding: 5px 13px;
-      border-radius: 50px;
-      font-size: 12px;
-      font-weight: 500;
-      cursor: pointer;
-      border: 1px solid #E5E7EB;
-      background: white;
-      color: #6B7280;
-      transition: all 0.12s;
-    }
-    .ghost-btn:hover { background: #F9FAFB; }
-
-    /* ─── BOARD ──────────────────────────────────── */
-    .board {
-      display: flex;
-      gap: var(--gap);
-      padding: 14px 16px;
-      height: calc(100vh - var(--hdr));
-      overflow-x: auto;
-      overflow-y: hidden;
-      align-items: flex-start;
-      -webkit-overflow-scrolling: touch;
-    }
-    .board::-webkit-scrollbar { height: 5px; }
-    .board::-webkit-scrollbar-thumb { background: #C9C5BE; border-radius: 4px; }
-
-    /* ─── COLUMN ─────────────────────────────────── */
-    .col {
-      min-width: var(--col-w);
-      width: var(--col-w);
-      max-height: 100%;
-      display: flex;
-      flex-direction: column;
-      border-radius: var(--r);
-      background: rgba(255,255,255,0.45);
-      border: 1px solid rgba(0,0,0,0.06);
-      overflow: hidden;
-      flex-shrink: 0;
-    }
-
-    .col-head {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 10px 12px 9px;
-      flex-shrink: 0;
+    /* ─── NAV ─────────────────────────────────────── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(238,234,227,0.92); backdrop-filter: blur(12px);
       border-bottom: 1px solid rgba(0,0,0,0.06);
+      padding: 0 24px; height: 56px;
+      display: flex; align-items: center; justify-content: space-between;
     }
-    .col-emoji { font-size: 14px; }
-    .col-label { font-size: 12px; font-weight: 600; flex: 1; }
-    .col-count {
-      font-size: 10px;
-      font-weight: 700;
-      padding: 1px 6px;
-      border-radius: 50px;
-      background: rgba(0,0,0,0.08);
+    .nav-logo { font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    .nav-cta {
+      padding: 8px 20px; border-radius: 50px;
+      background: var(--dark); color: white;
+      font-size: 13px; font-weight: 600;
+      text-decoration: none; transition: all 0.15s;
     }
-    .col-plus {
-      width: 20px; height: 20px;
-      border-radius: 6px;
-      border: none;
-      cursor: pointer;
-      font-size: 14px;
-      line-height: 1;
-      background: rgba(0,0,0,0.07);
-      color: inherit;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: background 0.12s;
-      flex-shrink: 0;
-    }
-    .col-plus:hover { background: rgba(0,0,0,0.14); }
+    .nav-cta:hover { background: #4A3D55; }
 
-    /* Column tints */
-    [data-cat="task"]       .col-head { background: #EFF6FF; color: #1D4ED8; }
-    [data-cat="worry"]      .col-head { background: #FFFBEB; color: #B45309; }
-    [data-cat="idea"]       .col-head { background: #F5F3FF; color: #6D28D9; }
-    [data-cat="purchase"]   .col-head { background: #F0FDF4; color: #166534; }
-    [data-cat="trip"]       .col-head { background: #F0F9FF; color: #0369A1; }
-    [data-cat="life-admin"] .col-head { background: #F1F5F9; color: #475569; }
-    [data-cat="other"]      .col-head { background: #F9FAFB; color: #6B7280; }
-
-    .col-body {
-      flex: 1;
-      overflow-y: auto;
-      padding: 8px;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
+    /* ─── HERO ────────────────────────────────────── */
+    .hero {
+      text-align: center; padding: 80px 24px 60px;
+      max-width: 720px; margin: 0 auto;
     }
-    .col-body::-webkit-scrollbar { width: 3px; }
-    .col-body::-webkit-scrollbar-thumb { background: #D1D5DB; border-radius: 4px; }
-    .col-body.over { background: rgba(99,102,241,0.06); border-radius: 0 0 var(--r) var(--r); }
-
-    .col-empty {
-      text-align: center;
-      padding: 24px 8px;
-      font-size: 11px;
-      color: #CBD5E1;
-      line-height: 1.6;
+    .badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: white; border: 1px solid var(--border);
+      border-radius: 50px; padding: 5px 14px;
+      font-size: 12px; font-weight: 500; color: var(--muted);
+      margin-bottom: 28px; box-shadow: 0 1px 4px rgba(0,0,0,0.06);
     }
-
-    /* ─── CARD ───────────────────────────────────── */
-    .card {
-      background: white;
-      border-radius: 9px;
-      padding: 10px 12px;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.07);
-      cursor: grab;
-      transition: transform 0.14s, box-shadow 0.14s;
-      user-select: none;
+    .badge-dot { width: 6px; height: 6px; border-radius: 50%; background: #10B981; }
+    h1 {
+      font-size: clamp(36px, 6vw, 62px); font-weight: 800;
+      line-height: 1.1; letter-spacing: -0.03em; margin-bottom: 20px;
     }
-    .card:hover { box-shadow: 0 3px 12px rgba(0,0,0,0.10); transform: translateY(-1px); }
-    .card:active { cursor: grabbing; }
-    .card.dragging { opacity: 0.38; transform: rotate(2deg) scale(1.02); }
-    .card.acked { opacity: 0.48; }
-    .card.done { opacity: 0.55; }
-    .card.done .card-text { text-decoration: line-through; color: #9CA3AF; }
-
-    .card-row1 { display: flex; gap: 8px; margin-bottom: 8px; }
-    .card-av {
-      width: 20px; height: 20px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 9px;
-      font-weight: 800;
-      color: white;
-      flex-shrink: 0;
-      margin-top: 1px;
+    h1 span { color: var(--coral); }
+    .hero-sub {
+      font-size: clamp(16px, 2.5vw, 19px); color: var(--muted);
+      line-height: 1.6; max-width: 520px; margin: 0 auto 36px;
     }
-    .card-text {
-      font-size: 12.5px;
-      color: #374151;
-      line-height: 1.45;
-      display: -webkit-box;
-      -webkit-line-clamp: 4;
-      -webkit-box-orient: vertical;
+    .cta-group { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: 14px; }
+    .btn-primary {
+      padding: 14px 32px; border-radius: 50px;
+      background: var(--dark); color: white;
+      font-size: 15px; font-weight: 600; text-decoration: none;
+      transition: all 0.15s; box-shadow: 0 4px 16px rgba(45,37,53,0.2);
+    }
+    .btn-primary:hover { background: #4A3D55; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(45,37,53,0.25); }
+    .btn-secondary {
+      padding: 14px 28px; border-radius: 50px;
+      background: white; color: var(--dark);
+      font-size: 15px; font-weight: 600; text-decoration: none;
+      border: 1px solid var(--border); transition: all 0.15s;
+    }
+    .btn-secondary:hover { background: #F9FAFB; }
+    .cta-note { font-size: 12px; color: #9CA3AF; }
+
+    /* ─── BOARD MOCKUP ────────────────────────────── */
+    .mockup-wrap { max-width: 900px; margin: 50px auto 0; padding: 0 16px; }
+    .mockup {
+      background: white; border-radius: 20px;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.12);
       overflow: hidden;
     }
-    .card-row2 {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .card-time { font-size: 10px; color: #D1D5DB; }
-    .card-acts { display: flex; gap: 3px; opacity: 0; transition: opacity 0.12s; }
-    .card:hover .card-acts { opacity: 1; }
-    .card-btn {
-      font-size: 10.5px;
-      padding: 2px 7px;
-      border-radius: 50px;
-      border: none;
-      cursor: pointer;
-      background: transparent;
-      transition: all 0.1s;
-    }
-    .card-btn.ack  { color: #9CA3AF; } .card-btn.ack:hover  { background: #F0FDF4; color: #166534; }
-    .card-btn.cmp  { color: #9CA3AF; } .card-btn.cmp:hover  { background: #F0FDF4; color: #16A34A; }
-    .card-btn.rsn  { color: #9CA3AF; } .card-btn.rsn:hover  { background: #EFF6FF; color: #1D4ED8; }
-    .card-btn.del  { color: #E5E7EB; } .card-btn.del:hover  { background: #FEF2F2; color: #DC2626; }
-    [data-cat="completed"] .col-head { background: #F0FDF4; color: #166534; }
-    .seen-dot { font-size: 9px; color: #6EE7B7; }
-
-    @keyframes cardIn { from { opacity:0; transform:scale(0.93) translateY(5px); } to { opacity:1; transform:none; } }
-    .card-new { animation: cardIn 0.2s ease-out; }
-
-    /* ─── SETUP SCREEN ──────────────────────────────── */
-    #setup-screen {
-      position: fixed; inset: 0; background: var(--bg);
-      display: none; align-items: center; justify-content: center;
-      z-index: 998; padding: 16px;
-    }
-    .setup-card {
-      background: white; border-radius: 24px; padding: 36px;
-      max-width: 380px; width: 100%;
-      box-shadow: 0 8px 40px rgba(0,0,0,0.10);
-    }
-    .setup-logo  { font-size: 36px; text-align: center; margin-bottom: 10px; }
-    .setup-title { font-size: 18px; font-weight: 700; color: var(--dark); text-align: center; margin-bottom: 4px; }
-    .setup-sub   { font-size: 13px; color: #9CA3AF; text-align: center; margin-bottom: 22px; }
-    .setup-tabs  { display: flex; background: #F3F4F6; border-radius: 50px; padding: 3px; margin-bottom: 20px; }
-    .setup-tab   { flex: 1; padding: 7px; border-radius: 50px; font-size: 13px; font-weight: 500; border: none; cursor: pointer; background: transparent; color: #9CA3AF; transition: all 0.15s; }
-    .setup-tab.active { background: white; color: var(--dark); box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
-    .setup-input { width: 100%; padding: 10px 14px; border: 1px solid #E5E7EB; border-radius: 10px; font-size: 14px; font-family: inherit; outline: none; color: #374151; margin-bottom: 10px; transition: border-color 0.14s; }
-    .setup-input:focus { border-color: var(--dark); }
-    .setup-btn   { width: 100%; padding: 11px; border-radius: 50px; border: none; background: var(--dark); color: white; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.15s; margin-top: 4px; }
-    .setup-btn:hover { background: #4A3D55; }
-    .setup-error { font-size: 12px; color: #DC2626; margin-top: 10px; min-height: 18px; text-align: center; }
-
-    /* ─── INVITE MODAL ───────────────────────────────── */
-    .invite-code { font-size: 30px; font-weight: 800; letter-spacing: 8px; color: var(--dark); text-align: center; padding: 18px; background: #F3F4F6; border-radius: 12px; margin: 14px 0; }
-    .invite-hint { font-size: 13px; color: #6B7280; text-align: center; line-height: 1.5; }
-
-    /* ─── TAB BAR (mobile only) ─────────────────────── */
-    .tab-bar {
-      display: none;
-      overflow-x: auto;
-      background: white;
+    .mockup-bar {
+      background: #F3F4F6; padding: 10px 16px;
+      display: flex; align-items: center; gap: 6px;
       border-bottom: 1px solid #E5E7EB;
-      padding: 0 8px;
-      gap: 2px;
-      flex-shrink: 0;
-      -webkit-overflow-scrolling: touch;
-      scrollbar-width: none;
     }
-    .tab-bar::-webkit-scrollbar { display: none; }
-    .tab-btn {
-      padding: 10px 12px;
-      border: none;
-      background: transparent;
-      font-size: 13px;
-      color: #9CA3AF;
-      cursor: pointer;
-      white-space: nowrap;
-      border-bottom: 2px solid transparent;
-      transition: all 0.15s;
-      flex-shrink: 0;
+    .dot { width: 10px; height: 10px; border-radius: 50%; }
+    .dot.r{background:#FF5F57;} .dot.y{background:#FFBD2E;} .dot.g{background:#28CA41;}
+    .mockup-url {
+      flex: 1; background: white; border-radius: 6px;
+      padding: 4px 10px; font-size: 11px; color: #9CA3AF;
+      border: 1px solid #E5E7EB; margin: 0 8px; text-align: center;
     }
-    .tab-btn.active { color: var(--dark); border-bottom-color: var(--dark); font-weight: 600; }
+    .mockup-board { display: flex; gap: 10px; padding: 14px; background: var(--bg); overflow-x: auto; }
+    .m-col { min-width: 180px; background: rgba(255,255,255,0.6); border-radius: 10px; overflow: hidden; border: 1px solid rgba(0,0,0,0.06); }
+    .m-col-head { padding: 8px 10px; font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 5px; }
+    .m-col-head .cnt { margin-left: auto; background: rgba(0,0,0,0.08); border-radius: 50px; padding: 1px 6px; font-size: 9px; }
+    .m-col[data-c="task"]  .m-col-head { background: #EFF6FF; color: #1D4ED8; }
+    .m-col[data-c="worry"] .m-col-head { background: #FFFBEB; color: #B45309; }
+    .m-col[data-c="idea"]  .m-col-head { background: #F5F3FF; color: #6D28D9; }
+    .m-col[data-c="buy"]   .m-col-head { background: #F0FDF4; color: #166534; }
+    .m-card { margin: 6px; background: white; border-radius: 7px; padding: 8px 10px; font-size: 10.5px; color: #374151; box-shadow: 0 1px 3px rgba(0,0,0,0.07); line-height: 1.4; }
+    .m-card-row { display: flex; align-items: center; gap: 5px; margin-bottom: 5px; }
+    .m-av { width: 14px; height: 14px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 7px; font-weight: 800; color: white; flex-shrink: 0; }
+    .m-time { font-size: 9px; color: #D1D5DB; margin-top: 4px; }
 
-    /* ─── MOBILE ─────────────────────────────────────── */
-    @media (max-width: 640px) {
-      header { padding: 0 14px; }
-      .logo-sub { display: none; }
-      .ghost-btn.digest-btn { display: none; }
+    /* ─── PROBLEM ─────────────────────────────────── */
+    .problem { text-align: center; padding: 80px 24px 40px; max-width: 640px; margin: 0 auto; }
+    .problem h2 { font-size: clamp(26px, 4vw, 38px); font-weight: 800; margin-bottom: 16px; letter-spacing: -0.02em; }
+    .problem p { font-size: 17px; color: var(--muted); line-height: 1.7; }
 
-      .tab-bar { display: flex; }
+    /* ─── FEATURES ────────────────────────────────── */
+    .features {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px; padding: 40px 24px 60px; max-width: 1000px; margin: 0 auto;
+    }
+    .feat { background: white; border-radius: 16px; padding: 28px; border: 1px solid var(--border); transition: transform 0.15s, box-shadow 0.15s; }
+    .feat:hover { transform: translateY(-3px); box-shadow: 0 8px 32px rgba(0,0,0,0.08); }
+    .feat-icon { font-size: 28px; margin-bottom: 14px; }
+    .feat h3 { font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+    .feat p { font-size: 13.5px; color: var(--muted); line-height: 1.6; }
 
-      .board {
-        flex-direction: column;
-        overflow-x: hidden;
-        overflow-y: auto;
-        padding: 10px 12px;
-        height: calc(100vh - var(--hdr) - 45px);
-        align-items: stretch;
-        gap: 0;
-      }
-      .board::-webkit-scrollbar { display: none; }
+    /* ─── HOW IT WORKS ────────────────────────────── */
+    .how { padding: 20px 24px 80px; max-width: 800px; margin: 0 auto; }
+    .how h2 { font-size: clamp(24px, 4vw, 36px); font-weight: 800; text-align: center; margin-bottom: 40px; letter-spacing: -0.02em; }
+    .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 24px; }
+    .step { text-align: center; }
+    .step-num { width: 44px; height: 44px; border-radius: 50%; background: var(--dark); color: white; font-size: 16px; font-weight: 800; display: flex; align-items: center; justify-content: center; margin: 0 auto 14px; }
+    .step h4 { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+    .step p { font-size: 12.5px; color: var(--muted); line-height: 1.5; }
 
-      .col {
-        display: none;
-        min-width: 100%;
-        width: 100%;
-        max-height: none;
-        border-radius: var(--r);
-        margin-bottom: 0;
-      }
-      .col.mobile-active {
-        display: flex;
-      }
-      .col-body {
-        max-height: 60vh;
-      }
-      .col-plus { width: 28px; height: 28px; font-size: 16px; }
-      .card-acts { opacity: 1; }
-      .card-btn.del { color: #D1D5DB; }
+    /* ─── AI SECTION ──────────────────────────────── */
+    .ai-section { background: var(--dark); color: white; padding: 64px 24px; text-align: center; }
+    .ai-section h2 { font-size: clamp(24px, 4vw, 38px); font-weight: 800; margin-bottom: 14px; letter-spacing: -0.02em; }
+    .ai-section p { font-size: 16px; opacity: 0.7; max-width: 500px; margin: 0 auto 32px; line-height: 1.6; }
+    .ai-chips { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 36px; }
+    .chip { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15); border-radius: 50px; padding: 6px 14px; font-size: 12.5px; color: rgba(255,255,255,0.85); }
+    .chat-demo { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 20px; max-width: 400px; margin: 0 auto; text-align: left; }
+    .chat-msg { display: flex; gap: 8px; margin-bottom: 12px; align-items: flex-start; }
+    .chat-msg.user { flex-direction: row-reverse; }
+    .chat-bubble { padding: 8px 12px; border-radius: 12px; font-size: 12.5px; line-height: 1.4; max-width: 240px; }
+    .chat-msg.bot  .chat-bubble { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.9); border-bottom-left-radius: 3px; }
+    .chat-msg.user .chat-bubble { background: var(--coral); color: white; border-bottom-right-radius: 3px; }
+    .chat-av-sm { width: 24px; height: 24px; border-radius: 50%; background: rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; font-size: 11px; flex-shrink: 0; margin-top: 2px; }
 
-      .chat {
-        width: calc(100vw - 24px);
-        right: 12px;
-        left: 12px;
-        bottom: 80px;
-        height: 68vh;
-        border-radius: 18px;
-      }
-      .fab { bottom: 16px; right: 16px; }
-    }
+    /* ─── FOOTER CTA ──────────────────────────────── */
+    .footer-cta { text-align: center; padding: 80px 24px; max-width: 600px; margin: 0 auto; }
+    .footer-cta h2 { font-size: clamp(26px, 4vw, 40px); font-weight: 800; margin-bottom: 14px; letter-spacing: -0.02em; }
+    .footer-cta p { font-size: 16px; color: var(--muted); margin-bottom: 32px; line-height: 1.6; }
 
-    /* ─── CHAT FAB ───────────────────────────────── */
-    .fab {
-      position: fixed;
-      bottom: 22px; right: 22px;
-      z-index: 100;
-      width: 50px; height: 50px;
-      border-radius: 50%;
-      background: var(--dark);
-      color: white;
-      border: none;
-      cursor: pointer;
-      font-size: 18px;
-      box-shadow: 0 4px 18px rgba(0,0,0,0.22);
-      transition: all 0.2s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+    /* ─── FOOTER ──────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border); padding: 24px;
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+      font-size: 12px; color: #9CA3AF; max-width: 1000px; margin: 0 auto;
     }
-    .fab:hover { transform: scale(1.08); box-shadow: 0 6px 22px rgba(0,0,0,0.28); }
-    .fab.open  { background: #6B7280; transform: rotate(0deg); }
+    .footer-built { display: inline-flex; align-items: center; gap: 6px; background: white; border: 1px solid var(--border); border-radius: 50px; padding: 4px 12px; font-size: 11px; }
 
-    /* ─── CHAT PANEL ─────────────────────────────── */
-    .chat {
-      position: fixed;
-      bottom: 84px; right: 22px;
-      z-index: 99;
-      width: 330px;
-      height: 470px;
-      background: white;
-      border-radius: 18px;
-      box-shadow: 0 10px 50px rgba(0,0,0,0.16);
-      display: flex;
-      flex-direction: column;
-      transform: scale(0.88) translateY(24px);
-      opacity: 0;
-      pointer-events: none;
-      transform-origin: bottom right;
-      transition: all 0.24s cubic-bezier(0.34, 1.56, 0.64, 1);
-      overflow: hidden;
-    }
-    .chat.on {
-      transform: none;
-      opacity: 1;
-      pointer-events: all;
-    }
-
-    .chat-hdr {
-      padding: 13px 15px 11px;
-      border-bottom: 1px solid #F3F4F6;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex-shrink: 0;
-    }
-    .chat-av {
-      width: 30px; height: 30px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #6B4E71, #3D8B8F);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 13px;
-      flex-shrink: 0;
-    }
-    .chat-name { font-size: 13px; font-weight: 600; color: #1F2937; }
-    .chat-hint { font-size: 10.5px; color: #9CA3AF; margin-top: 1px; }
-
-    .chat-msgs {
-      flex: 1;
-      overflow-y: auto;
-      padding: 12px 10px;
-      display: flex;
-      flex-direction: column;
-      gap: 9px;
-    }
-    .chat-msgs::-webkit-scrollbar { width: 3px; }
-    .chat-msgs::-webkit-scrollbar-thumb { background: #E5E7EB; border-radius: 4px; }
-
-    .msg { display: flex; gap: 6px; max-width: 92%; }
-    .msg.bot  { align-self: flex-start; }
-    .msg.user { align-self: flex-end; flex-direction: row-reverse; }
-
-    .bubble {
-      padding: 8px 11px;
-      border-radius: 14px;
-      font-size: 12.5px;
-      line-height: 1.45;
-    }
-    .msg.bot  .bubble { background: #F3F4F6; color: #374151; border-bottom-left-radius: 4px; }
-    .msg.user .bubble { background: var(--dark); color: white; border-bottom-right-radius: 4px; }
-
-    .msg-icon {
-      width: 24px; height: 24px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #6B4E71, #3D8B8F);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 11px;
-      flex-shrink: 0;
-      margin-top: 2px;
-    }
-
-    .qrs { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
-    .qr {
-      padding: 3px 9px;
-      border-radius: 50px;
-      font-size: 11px;
-      border: 1px solid #E5E7EB;
-      background: white;
-      color: #374151;
-      cursor: pointer;
-      transition: all 0.12s;
-    }
-    .qr:hover { background: var(--dark); color: white; border-color: var(--dark); }
-
-    @keyframes msgIn { from { opacity:0; transform:translateY(5px); } to { opacity:1; transform:none; } }
-    .msg { animation: msgIn 0.18s ease-out; }
-
-    /* Typing dots */
-    .typing {
-      display: flex; gap: 4px;
-      background: #F3F4F6;
-      padding: 10px 14px;
-      border-radius: 14px;
-      border-bottom-left-radius: 4px;
-      width: fit-content;
-    }
-    .dot {
-      width: 5px; height: 5px;
-      border-radius: 50%;
-      background: #9CA3AF;
-      animation: bounce 1.2s infinite;
-    }
-    .dot:nth-child(2) { animation-delay: .2s; }
-    .dot:nth-child(3) { animation-delay: .4s; }
-    @keyframes bounce { 0%,80%,100%{transform:translateY(0)} 40%{transform:translateY(-5px)} }
-
-    .chat-foot {
-      padding: 9px 10px;
-      border-top: 1px solid #F3F4F6;
-      display: flex;
-      align-items: flex-end;
-      gap: 7px;
-      flex-shrink: 0;
-    }
-    .chat-ta {
-      flex: 1;
-      resize: none;
-      border: 1px solid #E5E7EB;
-      border-radius: 10px;
-      padding: 7px 10px;
-      font-size: 12.5px;
-      font-family: inherit;
-      color: #374151;
-      outline: none;
-      min-height: 36px;
-      max-height: 90px;
-      line-height: 1.4;
-      transition: border-color 0.14s;
-    }
-    .chat-ta:focus { border-color: #6B4E71; }
-    .chat-send {
-      width: 34px; height: 34px;
-      border-radius: 50%;
-      border: none;
-      background: var(--dark);
-      color: white;
-      cursor: pointer;
-      font-size: 13px;
-      flex-shrink: 0;
-      transition: all 0.14s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .chat-send:hover { background: #4A3D55; transform: scale(1.06); }
-
-    /* ─── OVERLAY ────────────────────────────────── */
-    .overlay {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.42);
-      z-index: 200;
-      backdrop-filter: blur(3px);
-      align-items: center;
-      justify-content: center;
-      padding: 16px;
-    }
-    .overlay.on { display: flex; }
-    .modal {
-      background: white;
-      border-radius: 20px;
-      padding: 26px;
-      max-width: 500px;
-      width: 100%;
-      max-height: 78vh;
-      overflow-y: auto;
-    }
-    .modal::-webkit-scrollbar { width: 4px; }
-    .modal::-webkit-scrollbar-thumb { background: #E5E7EB; border-radius: 4px; }
-    .modal-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 18px;
-    }
-    .modal-title { font-size: 16px; font-weight: 700; }
-    .modal-close {
-      font-size: 20px; color: #9CA3AF;
-      background: none; border: none; cursor: pointer;
-      line-height: 1;
+    @media (max-width: 600px) {
+      .hero { padding: 56px 20px 40px; }
+      .m-col:nth-child(n+3) { display: none; }
     }
   </style>
 </head>
 <body>
 
-<!-- ─── LOGIN SCREEN ─────────────────────────────────── -->
-<div id="login-screen">
-  <div class="login-card">
-    <div class="login-logo">🧠</div>
-    <div class="login-title">Second Brain</div>
-    <div class="login-sub">Sign in to access your shared board</div>
-    <button class="google-btn" onclick="signIn()">
-      <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.964 10.707A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.707V4.961H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.039l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.961L3.964 7.293C4.672 5.163 6.656 3.58 9 3.58z"/></svg>
-      Sign in with Google
-    </button>
-    <div class="login-error" id="login-error"></div>
-  </div>
-</div>
+<nav>
+  <div class="nav-logo">🧠 Second Brain</div>
+  <a href="./second-brain.html" class="nav-cta">Open app →</a>
+</nav>
 
-<!-- ─── HEADER ──────────────────────────────────────── -->
-<header>
-  <div class="logo">
-    🧠 <span id="board-name">Second Brain</span>
-    <span class="logo-sub">shared · private</span>
+<section class="hero">
+  <div class="badge"><span class="badge-dot"></span> Live · Free to use · Powered by AI</div>
+  <h1>The shared brain<br>your household <span>needs</span></h1>
+  <p class="hero-sub">Tasks, ideas, worries, and plans — captured in seconds, organised automatically, visible to everyone at home. In real time.</p>
+  <div class="cta-group">
+    <a href="./second-brain.html" class="btn-primary">Create your board →</a>
+    <a href="#how" class="btn-secondary">See how it works</a>
   </div>
-  <div class="hdr-right">
-    <button class="ghost-btn" id="invite-btn" onclick="showInvite()" style="display:none">🔗 Invite</button>
-    <button class="ghost-btn digest-btn" onclick="openDigest()">🗓 Weekly Digest</button>
-    <button class="ghost-btn" onclick="signOut()" id="signout-btn" style="display:none">Sign out</button>
-  </div>
-</header>
+  <p class="cta-note">Free · Google Sign-In · Invite your household</p>
+</section>
 
-<!-- ─── SETUP SCREEN ──────────────────────────────────── -->
-<div id="setup-screen">
-  <div class="setup-card">
-    <div class="setup-logo">🧠</div>
-    <div class="setup-title">Welcome to Second Brain</div>
-    <div class="setup-sub">Create a shared board or join one with an invite code.</div>
-    <div class="setup-tabs">
-      <button class="setup-tab active" id="tab-create" onclick="setupTab('create')">Create board</button>
-      <button class="setup-tab" id="tab-join" onclick="setupTab('join')">Join board</button>
+<div class="mockup-wrap">
+  <div class="mockup">
+    <div class="mockup-bar">
+      <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
+      <div class="mockup-url">second-brain · shared · private</div>
     </div>
-    <div id="panel-create">
-      <input class="setup-input" id="inp-board-name" placeholder="Board name (e.g. Our Home)" maxlength="40">
-      <input class="setup-input" id="inp-create-name" placeholder="Your name" maxlength="20">
-      <button class="setup-btn" onclick="doCreate()">Create board →</button>
-    </div>
-    <div id="panel-join" style="display:none">
-      <input class="setup-input" id="inp-code" placeholder="6-letter invite code" maxlength="6" style="text-transform:uppercase;letter-spacing:3px">
-      <input class="setup-input" id="inp-join-name" placeholder="Your name" maxlength="20">
-      <button class="setup-btn" onclick="doJoin()">Join board →</button>
-    </div>
-    <div class="setup-error" id="setup-error"></div>
-  </div>
-</div>
-
-<!-- ─── TAB BAR (mobile) ──────────────────────────────── -->
-<div class="tab-bar" id="tab-bar"></div>
-
-<!-- ─── KANBAN BOARD ─────────────────────────────────── -->
-<div class="board" id="board"></div>
-
-<!-- ─── CHAT FAB ─────────────────────────────────────── -->
-<button class="fab" id="fab" onclick="toggleChat()">💬</button>
-
-<!-- ─── CHAT PANEL ────────────────────────────────────── -->
-<div class="chat" id="chat">
-  <div class="chat-hdr">
-    <div class="chat-av">🧠</div>
-    <div>
-      <div class="chat-name">Second Brain</div>
-      <div class="chat-hint" id="chat-hint">Tell me anything — I'll sort it</div>
-    </div>
-  </div>
-  <div class="chat-msgs" id="chat-msgs"></div>
-  <div class="chat-foot">
-    <textarea class="chat-ta" id="chat-ta" rows="1"
-      placeholder="What's on your mind?"
-      onkeydown="chatKey(event)"
-      oninput="grow(this)"></textarea>
-    <button class="chat-send" onclick="send()">↑</button>
-  </div>
-</div>
-
-<!-- ─── REASSIGN OVERLAY ─────────────────────────────── -->
-<div class="overlay" id="reassign-overlay" onclick="maybeCloseReassign(event)">
-  <div class="modal" style="max-width:320px">
-    <div class="modal-head">
-      <span class="modal-title">Move to…</span>
-      <button class="modal-close" onclick="closeReassign()">×</button>
-    </div>
-    <div id="reassign-body"></div>
-  </div>
-</div>
-
-<!-- ─── INVITE OVERLAY ────────────────────────────────── -->
-<div class="overlay" id="invite-overlay" onclick="maybeCloseInvite(event)">
-  <div class="modal">
-    <div class="modal-head">
-      <span class="modal-title">🔗 Invite someone</span>
-      <button class="modal-close" onclick="closeInvite()">×</button>
-    </div>
-    <div id="invite-body"></div>
-  </div>
-</div>
-
-<!-- ─── DIGEST OVERLAY ────────────────────────────────── -->
-<div class="overlay" id="overlay" onclick="maybeClose(event)">
-  <div class="modal" id="modal">
-    <div class="modal-head">
-      <span class="modal-title">🗓 Weekly Digest</span>
-      <button class="modal-close" onclick="closeOverlay()">×</button>
-    </div>
-    <div id="digest-body"></div>
-  </div>
-</div>
-
-<script>
-// ────────────────────────────────────────────────────────────
-//  FIREBASE INIT
-// ────────────────────────────────────────────────────────────
-const firebaseConfig = {
-  apiKey: "AIzaSyCkTkvEYXKYJjVqMcoijVF7aa6gszi6WXg",
-  authDomain: "second-brain-1619f.firebaseapp.com",
-  databaseURL: "https://second-brain-1619f-default-rtdb.firebaseio.com",
-  projectId: "second-brain-1619f",
-  storageBucket: "second-brain-1619f.firebasestorage.app",
-  messagingSenderId: "192541189972",
-  appId: "1:192541189972:web:3b216087a61b5bf6a90ac1"
-};
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
-let entriesRef   = null;
-let currentUser  = null;
-let household    = null;
-
-// ────────────────────────────────────────────────────────────
-//  AUTH
-// ────────────────────────────────────────────────────────────
-const MEMBER_COLORS = ['#E07A5F','#3D8B8F','#6B4E71','#E9C46A','#2A9D8F','#E76F51'];
-
-function signIn() {
-  try {
-    const provider = new firebase.auth.GoogleAuthProvider();
-    firebase.auth().signInWithPopup(provider).catch(err => {
-      document.getElementById('login-error').textContent = err.code + ': ' + err.message;
-    });
-  } catch(e) {
-    document.getElementById('login-error').textContent = 'Error: ' + e.message;
-  }
-}
-
-function signOut() {
-  if (entriesRef) { entriesRef.off(); entriesRef = null; }
-  household = null; entries = [];
-  firebase.auth().signOut();
-}
-
-firebase.auth().onAuthStateChanged(async user => {
-  if (user) {
-    currentUser = user;
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('signout-btn').style.display = '';
-    await checkHousehold(user);
-  } else {
-    currentUser = null;
-    document.getElementById('login-screen').style.display = 'flex';
-    document.getElementById('setup-screen').style.display = 'none';
-    document.getElementById('signout-btn').style.display = 'none';
-    document.getElementById('invite-btn').style.display = 'none';
-  }
-});
-
-async function checkHousehold(user) {
-  const snap = await db.ref(`userHouseholds/${user.uid}`).once('value');
-  const hid  = snap.val();
-  if (hid) {
-    await loadHousehold(hid);
-  } else {
-    document.getElementById('setup-screen').style.display = 'flex';
-  }
-}
-
-async function loadHousehold(hid) {
-  const snap = await db.ref(`households/${hid}`).once('value');
-  household  = { id: hid, ...snap.val() };
-  if (entriesRef) entriesRef.off();
-  entriesRef = db.ref(`households/${hid}/entries`);
-
-  const myMember = household.members?.[currentUser.uid];
-  partner = myMember?.displayName || currentUser.displayName || 'You';
-
-  document.getElementById('board-name').textContent = household.name || 'Second Brain';
-  document.getElementById('setup-screen').style.display = 'none';
-  document.getElementById('invite-btn').style.display = '';
-
-  entriesRef.on('value', snap => {
-    const data = snap.val();
-    entries = data ? Object.values(data).sort((a,b) => new Date(b.ts)-new Date(a.ts)) : [];
-    renderBoard();
-  });
-
-  setPartner(partner);
-}
-
-function getMemberColor(displayName) {
-  if (!household?.members) return '#888';
-  const m = Object.values(household.members).find(m => m.displayName === displayName);
-  return m?.color || '#888';
-}
-
-// ─── SETUP ───────────────────────────────────────────────────
-function setupTab(tab) {
-  document.getElementById('panel-create').style.display = tab === 'create' ? '' : 'none';
-  document.getElementById('panel-join').style.display   = tab === 'join'   ? '' : 'none';
-  document.getElementById('tab-create').className = 'setup-tab' + (tab === 'create' ? ' active' : '');
-  document.getElementById('tab-join').className   = 'setup-tab' + (tab === 'join'   ? ' active' : '');
-  document.getElementById('setup-error').textContent = '';
-}
-
-async function doCreate() {
-  const boardName = document.getElementById('inp-board-name').value.trim();
-  const myName    = document.getElementById('inp-create-name').value.trim();
-  const errEl     = document.getElementById('setup-error');
-  if (!boardName || !myName) { errEl.textContent = 'Please fill in all fields.'; return; }
-  errEl.textContent = 'Creating…';
-  try {
-    const uid  = currentUser.uid;
-    const code = Math.random().toString(36).substr(2,6).toUpperCase();
-    const hid  = db.ref('households').push().key;
-    await db.ref(`households/${hid}`).set({
-      name: boardName, inviteCode: code, createdAt: new Date().toISOString(), createdBy: uid,
-      members: { [uid]: { displayName: myName, email: currentUser.email, color: MEMBER_COLORS[0], joinedAt: new Date().toISOString() } }
-    });
-    await db.ref(`userHouseholds/${uid}`).set(hid);
-    await loadHousehold(hid);
-  } catch(e) { document.getElementById('setup-error').textContent = 'Error: ' + e.message; }
-}
-
-async function doJoin() {
-  const code   = document.getElementById('inp-code').value.trim().toUpperCase();
-  const myName = document.getElementById('inp-join-name').value.trim();
-  const errEl  = document.getElementById('setup-error');
-  if (!code || !myName) { errEl.textContent = 'Please fill in all fields.'; return; }
-  errEl.textContent = 'Looking up code…';
-  try {
-    const snap = await db.ref('households').orderByChild('inviteCode').equalTo(code).once('value');
-    if (!snap.exists()) { errEl.textContent = 'Invalid invite code. Check and try again.'; return; }
-    const hid     = Object.keys(snap.val())[0];
-    const members = snap.val()[hid].members || {};
-    const colorIdx = Math.min(Object.keys(members).length, MEMBER_COLORS.length - 1);
-    const uid = currentUser.uid;
-    await db.ref(`households/${hid}/members/${uid}`).set({
-      displayName: myName, email: currentUser.email, color: MEMBER_COLORS[colorIdx], joinedAt: new Date().toISOString()
-    });
-    await db.ref(`userHouseholds/${uid}`).set(hid);
-    await loadHousehold(hid);
-  } catch(e) { document.getElementById('setup-error').textContent = 'Error: ' + e.message; }
-}
-
-// ─── INVITE ──────────────────────────────────────────────────
-function showInvite() {
-  const members = Object.values(household?.members || {});
-  document.getElementById('invite-body').innerHTML = `
-    <p style="font-size:13px;color:#6B7280;margin-bottom:8px;">Share this code with anyone you want to invite:</p>
-    <div class="invite-code">${household?.inviteCode || '------'}</div>
-    <p class="invite-hint">They sign in, tap "Join board", and enter this code.</p>
-    <div style="margin-top:18px;border-top:1px solid #F3F4F6;padding-top:14px;">
-      <div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:8px;">Members (${members.length})</div>
-      ${members.map(m=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-        <div style="width:24px;height:24px;border-radius:50%;background:${m.color};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:white;">${m.displayName[0]}</div>
-        <span style="font-size:13px;color:#374151;">${m.displayName}</span>
-        ${m.email===currentUser?.email?'<span style="font-size:11px;color:#9CA3AF;">(you)</span>':''}
-      </div>`).join('')}
-    </div>`;
-  document.getElementById('invite-overlay').classList.add('on');
-}
-function closeInvite()       { document.getElementById('invite-overlay').classList.remove('on'); }
-function maybeCloseInvite(ev){ if (ev.target===document.getElementById('invite-overlay')) closeInvite(); }
-
-// ────────────────────────────────────────────────────────────
-//  DATA
-// ────────────────────────────────────────────────────────────
-
-const CATS = [
-  { id:'task', e:'✅', l:'Tasks',
-    keys:['need to','should','must','have to','remember to','don\'t forget','dont forget','todo','to-do',
-          'call','fix','schedule','set up','follow up','book','confirm','check on','remind','pick up',
-          'arrange','finish','complete','wrap up','send','email','text','message','pay','submit',
-          'fill out','sign','return','drop off','bring','prepare','clean','update','cancel',
-          'reschedule','apply','file','review','print','install','repair','replace','get done',
-          'gotta','got to','going to do','need done','action item','make sure','don\'t let me forget'] },
-  { id:'worry', e:'💭', l:'Worries',
-    keys:['worried','worry','anxious','anxiety','stressed','stress','scared','nervous','fear',
-          'overwhelmed','overwhelm','concerned','dread','uneasy','unsure','panic','not sure',
-          'uncertain','doubt','trouble','problem','issue','struggling','struggle','frustrated',
-          'frustrating','frustration','pressure','tension','conflict','unhappy','uncomfortable',
-          'bad feeling','something wrong','not okay','not ok','feels off','keep thinking about',
-          'can\'t stop thinking','been bothering','bothering me','weighing on me','on my mind'] },
-  { id:'idea', e:'💡', l:'Ideas',
-    keys:['idea','what if','maybe we','could we','would be nice','imagine','how about','what about',
-          'thinking about trying','let\'s try','lets try','we should try','suggestion','proposal',
-          'new project','experiment','try out','explore','consider','potential','opportunity',
-          'concept','vision','dream','would love to','been thinking','thinking of','thought of',
-          'came up with','what do you think about','wouldn\'t it be','might be cool','could be fun',
-          'we could','why don\'t we','let\'s start','let\'s make','let\'s do'] },
-  { id:'purchase', e:'🛒', l:'Purchases',
-    keys:['buy','order','purchase','need to get','looking for','price','amazon','etsy','shop',
-          'gift for','groceries','stock up','reorder','research','walmart','target','costco','ikea',
-          'get some','pick up some','need more','running out','out of','low on','deal','sale',
-          'discount','shipping','delivery','online shopping','add to cart','wishlist',
-          'how much does','costs','expensive','affordable','cheap','budget for','looking to buy',
-          'splurge on','treat ourselves','new gear','new gadget'] },
-  { id:'trip', e:'✈️', l:'Trips',
-    keys:['trip','travel','visit','vacation','flight','hotel','airbnb','passport','itinerary',
-          'destination','holiday','road trip','getaway','airfare','abroad','weekend away','cruise',
-          'explore','sightseeing','beach','mountains','international','domestic','ticket',
-          'reservation','packing','luggage','visa','tour','book flights','check flights',
-          'where should we go','places to go','travel to','fly to','drive to','staycation',
-          'long weekend','city break','escape'] },
-  { id:'life-admin', e:'📋', l:'Life Admin',
-    keys:['insurance','taxes','appointment','doctor','dentist','vet','bank','renew','renewal',
-          'form','deadline','budget','bill','lease','license','utilities','registration',
-          'subscription','mortgage','rent','payment','invoice','warranty','contract','policy',
-          'premium','claim','refund','statement','healthcare','prescription','medication',
-          'pharmacy','legal','lawyer','accountant','financial','investment','savings',
-          'credit card','loan','tax return','expire','expiry','due date','overdue','direct debit',
-          'standing order','pension','national insurance','hmrc','council tax'] },
-];
-const OTHER      = { id:'other',     e:'📝', l:'Other' };
-const COMPLETED  = { id:'completed', e:'☑️',  l:'Completed' };
-
-const BOT = {
-  task:        ["Added ✅ — on your task list.", "Got it ✅. I'll keep that for you.", "Noted ✅ and saved.", "On the list ✅!"],
-  worry:       ["Saved 💭. You can let it go for now.", "I hear you 💭. It's safe here.", "Captured 💭 — it's on the board.", "Got it 💭. You don't have to hold that alone."],
-  idea:        ["Love it 💡! On the board.", "Great idea! 💡 Saved.", "Added 💡 — worth exploring!", "Ooh, noted 💡. Could be something!"],
-  purchase:    ["On the list 🛒!", "Added to purchases 🛒.", "Saved 🛒 — research it together later.", "Got it 🛒. Added!"],
-  trip:        ["Ooh, travel! ✈️ Saved.", "Added ✈️! That sounds exciting.", "Saved to trip ideas ✈️!", "Love it ✈️ — noted!"],
-  'life-admin':["Filed under Life Admin 📋.", "On it 📋 — noted.", "Saved 📋. Good staying on top of it.", "Noted 📋. One less thing to forget!"],
-  other:       ["Got it 📝. Saved!", "Noted 📝!", "Saved 📝.", "Added 📝!"],
-};
-
-function botReply(cat) {
-  const replies = BOT[cat] || BOT.other;
-  return replies[Math.floor(Math.random() * replies.length)];
-}
-
-
-let partner        = 'Margi';
-let entries        = [];
-let chatOpen       = false;
-let state          = 'ready';
-let pending        = null;
-let hintCat        = null;
-let activeTab      = 'task';
-let reassignTarget = null;
-
-function isMobile() { return window.innerWidth <= 640; }
-function setTab(catId) { activeTab = catId; renderBoard(); }
-
-function saveEntries() {
-  if (!entriesRef) return;
-  const obj = {};
-  entries.forEach(e => { obj[e.id] = e; });
-  entriesRef.set(obj);
-}
-
-// ────────────────────────────────────────────────────────────
-//  UTILS
-// ────────────────────────────────────────────────────────────
-function meta(id)  { return CATS.find(c => c.id === id) || OTHER; }
-function rand(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
-
-function esc(t) {
-  return String(t)
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    .replace(/"/g,'&quot;').replace(/\n/g,'<br>');
-}
-
-function ago(iso) {
-  const ms = Date.now() - new Date(iso).getTime();
-  const m  = Math.floor(ms / 60000);
-  if (m < 1)  return 'just now';
-  if (m < 60) return m + 'm';
-  const h = Math.floor(m / 60);
-  if (h < 24) return h + 'h';
-  const d = Math.floor(h / 24);
-  if (d === 1) return 'yesterday';
-  if (d < 7)   return d + 'd';
-  return new Date(iso).toLocaleDateString('en-US',{month:'short',day:'numeric'});
-}
-
-function scoreCats(text) {
-  const lo = text.toLowerCase();
-  return CATS
-    .map(c => ({ cat: c, score: c.keys.filter(k => lo.includes(k)).length }))
-    .filter(x => x.score > 0)
-    .sort((a, b) => b.score - a.score);
-}
-
-function detectCat(text) {
-  return scoreCats(text)[0]?.cat.id || 'other';
-}
-
-// ────────────────────────────────────────────────────────────
-//  PARTNER
-// ────────────────────────────────────────────────────────────
-function setPartner(name) {
-  partner = name;
-  renderBoard();
-  if (chatOpen) resetChat();
-}
-
-// ────────────────────────────────────────────────────────────
-//  ENTRIES
-// ────────────────────────────────────────────────────────────
-function addEntry(text, cat) {
-  const e = { id: Date.now().toString(), text: text.trim(), author: partner,
-              category: cat, ts: new Date().toISOString(),
-              acked: false, ackedBy: null,
-              completed: false, completedBy: null, completedAt: null };
-  entries.unshift(e);
-  saveEntries();
-  return e;
-}
-
-function ackEntry(id) {
-  const e = entries.find(x => x.id === id);
-  if (!e || e.author === partner) return;
-  e.acked = !e.acked;
-  e.ackedBy = e.acked ? partner : null;
-  saveEntries();
-}
-
-function completeEntry(id) {
-  const e = entries.find(x => x.id === id);
-  if (!e) return;
-  e.completed    = !e.completed;
-  e.completedBy  = e.completed ? partner : null;
-  e.completedAt  = e.completed ? new Date().toISOString() : null;
-  saveEntries();
-}
-
-function delEntry(id) {
-  entries = entries.filter(x => x.id !== id);
-  saveEntries();
-}
-
-// ────────────────────────────────────────────────────────────
-//  DRAG & DROP
-// ────────────────────────────────────────────────────────────
-let dragId = null;
-
-function dragStart(ev, id) {
-  dragId = id;
-  ev.currentTarget.classList.add('dragging');
-  ev.dataTransfer.effectAllowed = 'move';
-}
-function dragEnd(ev) {
-  ev.currentTarget.classList.remove('dragging');
-  document.querySelectorAll('.col-body').forEach(b => b.classList.remove('over'));
-}
-function dragOver(ev) {
-  ev.preventDefault();
-  ev.dataTransfer.dropEffect = 'move';
-  document.querySelectorAll('.col-body').forEach(b => b.classList.remove('over'));
-  ev.currentTarget.classList.add('over');
-}
-function drop(ev, cat) {
-  ev.preventDefault();
-  ev.currentTarget.classList.remove('over');
-  if (!dragId) return;
-  const e = entries.find(x => x.id === dragId);
-  if (e && e.category !== cat) { e.category = cat; saveEntries(); renderBoard(); }
-  dragId = null;
-}
-
-// ────────────────────────────────────────────────────────────
-//  RENDER BOARD
-// ────────────────────────────────────────────────────────────
-function renderCard(e) {
-  const col   = getMemberColor(e.author);
-  const isOwn = e.author === partner;
-  const done  = !!e.completed;
-
-  const ackBtn = !isOwn
-    ? `<button class="card-btn ack" onclick="event.stopPropagation();ackEntry('${e.id}')">${e.acked ? '↩' : '👋'}</button>`
-    : (e.acked ? `<span class="seen-dot">✓ seen</span>` : '');
-
-  const cmpBtn = `<button class="card-btn cmp" title="${done ? 'Undo complete' : 'Mark complete'}" onclick="event.stopPropagation();completeEntry('${e.id}')">${done ? '↩' : '✓'}</button>`;
-  const rsnBtn = `<button class="card-btn rsn" title="Move to…" onclick="event.stopPropagation();openReassign('${e.id}')">⇢</button>`;
-
-  return `
-  <div class="card ${e.acked?'acked':''} ${done?'done':''} card-new" id="c-${e.id}"
-    draggable="true"
-    ondragstart="dragStart(event,'${e.id}')"
-    ondragend="dragEnd(event)">
-    <div class="card-row1">
-      <div class="card-av" style="background:${col}">${e.author[0]}</div>
-      <div class="card-text">${esc(e.text)}</div>
-    </div>
-    <div class="card-row2">
-      <span class="card-time">${ago(e.ts)}</span>
-      <div class="card-acts">
-        ${cmpBtn}
-        ${rsnBtn}
-        ${ackBtn}
-        <button class="card-btn del" onclick="event.stopPropagation();delEntry('${e.id}')">×</button>
+    <div class="mockup-board">
+      <div class="m-col" data-c="task">
+        <div class="m-col-head">✅ Tasks <span class="cnt">3</span></div>
+        <div class="m-card"><div class="m-card-row"><div class="m-av" style="background:#E07A5F">M</div>Call the dentist to book checkup</div><div class="m-time">just now</div></div>
+        <div class="m-card"><div class="m-card-row"><div class="m-av" style="background:#3D8B8F">S</div>Renew car insurance before 30th</div><div class="m-time">2h</div></div>
+        <div class="m-card"><div class="m-card-row"><div class="m-av" style="background:#E07A5F">M</div>Follow up on the lease renewal</div><div class="m-time">yesterday</div></div>
+      </div>
+      <div class="m-col" data-c="idea">
+        <div class="m-col-head">💡 Ideas <span class="cnt">2</span></div>
+        <div class="m-card"><div class="m-card-row"><div class="m-av" style="background:#3D8B8F">S</div>What if we did weekly no-phone dinners?</div><div class="m-time">1d</div></div>
+        <div class="m-card"><div class="m-card-row"><div class="m-av" style="background:#E07A5F">M</div>Start a house plant collection</div><div class="m-time">3d</div></div>
+      </div>
+      <div class="m-col" data-c="worry">
+        <div class="m-col-head">💭 Worries <span class="cnt">1</span></div>
+        <div class="m-card"><div class="m-card-row"><div class="m-av" style="background:#E07A5F">M</div>Worried we're spending too much eating out</div><div class="m-time">5h</div></div>
+      </div>
+      <div class="m-col" data-c="buy">
+        <div class="m-col-head">🛒 Purchases <span class="cnt">2</span></div>
+        <div class="m-card"><div class="m-card-row"><div class="m-av" style="background:#3D8B8F">S</div>Research new blenders under £80</div><div class="m-time">2d</div></div>
+        <div class="m-card"><div class="m-card-row"><div class="m-av" style="background:#E07A5F">M</div>Gift for mum's birthday — ideas?</div><div class="m-time">4d</div></div>
       </div>
     </div>
-  </div>`;
-}
+  </div>
+</div>
 
-function renderBoard() {
-  const allCols  = [...CATS, OTHER, COMPLETED];
-  const mobile   = isMobile();
+<section class="problem">
+  <h2>"Did you remember to…?"</h2>
+  <p>Every household runs on a thousand small things — split across texts, notes apps, and two separate heads. Second Brain gives you one shared place for all of it, so nothing slips through.</p>
+</section>
 
-  // Tab bar
-  const tabBar = document.getElementById('tab-bar');
-  tabBar.innerHTML = allCols.map(cat => {
-    const count = cat.id === 'completed'
-      ? entries.filter(e => e.completed).length
-      : entries.filter(e => e.category === cat.id && !e.completed).length;
-    return `<button class="tab-btn ${activeTab === cat.id ? 'active' : ''}" onclick="setTab('${cat.id}')">${cat.e} ${count}</button>`;
-  }).join('');
+<section class="features">
+  <div class="feat"><div class="feat-icon">🤖</div><h3>AI-powered capture</h3><p>Just type anything naturally. The app understands what you mean and sorts it into the right column automatically — no manual tagging needed.</p></div>
+  <div class="feat"><div class="feat-icon">⚡</div><h3>Real-time sync</h3><p>What you add appears instantly on your partner's screen. No refresh, no delay. Your board is always up to date.</p></div>
+  <div class="feat"><div class="feat-icon">🏠</div><h3>Your household, your board</h3><p>Create a private board and invite anyone with a 6-letter code. Each household gets its own completely isolated space.</p></div>
+  <div class="feat"><div class="feat-icon">📱</div><h3>Mobile-first</h3><p>Built for phones with a tab-based layout. Add things on the go — the full board in your pocket.</p></div>
+  <div class="feat"><div class="feat-icon">👋</div><h3>Acknowledge & complete</h3><p>Let your partner know you've seen something. Mark tasks done and watch them move to Completed automatically.</p></div>
+  <div class="feat"><div class="feat-icon">🔒</div><h3>Private & secure</h3><p>Google Sign-In, Firebase security rules, and invite-only access mean only your household can see your board.</p></div>
+</section>
 
-  // Columns
-  document.getElementById('board').innerHTML = allCols.map(cat => {
-    const cards = cat.id === 'completed'
-      ? entries.filter(e => e.completed)
-      : entries.filter(e => e.category === cat.id && !e.completed);
-    const isActive  = !mobile || activeTab === cat.id;
-    const canAdd    = cat.id !== 'completed';
-    return `
-    <div class="col ${isActive ? 'mobile-active' : ''}" data-cat="${cat.id}">
-      <div class="col-head">
-        <span class="col-emoji">${cat.e}</span>
-        <span class="col-label">${cat.l}</span>
-        <span class="col-count">${cards.length}</span>
-        ${canAdd ? `<button class="col-plus" onclick="openChatFor('${cat.id}')" title="Add to ${cat.l}">+</button>` : ''}
-      </div>
-      <div class="col-body" ondragover="dragOver(event)" ondrop="drop(event,'${cat.id}')">
-        ${cards.length ? cards.map(renderCard).join('') : `<div class="col-empty">No ${cat.l.toLowerCase()} yet</div>`}
-      </div>
-    </div>`;
-  }).join('');
-}
+<section class="how" id="how">
+  <h2>Up and running in 60 seconds</h2>
+  <div class="steps">
+    <div class="step"><div class="step-num">1</div><h4>Sign in</h4><p>Use your Google account — no new password to remember.</p></div>
+    <div class="step"><div class="step-num">2</div><h4>Create your board</h4><p>Give it a name and get a unique 6-letter invite code.</p></div>
+    <div class="step"><div class="step-num">3</div><h4>Invite your household</h4><p>Share the code. They join in seconds with their own Google account.</p></div>
+    <div class="step"><div class="step-num">4</div><h4>Start adding</h4><p>Type anything in the chat — AI sorts it onto the right column.</p></div>
+  </div>
+</section>
 
-window.addEventListener('resize', renderBoard);
+<section class="ai-section">
+  <h2>Just talk to it</h2>
+  <p>No forms, no dropdowns. Type anything naturally — the AI figures out where it belongs.</p>
+  <div class="ai-chips">
+    <span class="chip">✅ Tasks</span><span class="chip">💭 Worries</span><span class="chip">💡 Ideas</span>
+    <span class="chip">🛒 Purchases</span><span class="chip">✈️ Trips</span><span class="chip">📋 Life Admin</span>
+  </div>
+  <div class="chat-demo">
+    <div class="chat-msg user">
+      <div class="chat-bubble">we need to sort the car insurance before end of month</div>
+      <div class="chat-av-sm">M</div>
+    </div>
+    <div class="chat-msg bot">
+      <div class="chat-av-sm">🧠</div>
+      <div class="chat-bubble">Filed under Life Admin 📋. One less thing to forget!</div>
+    </div>
+    <div class="chat-msg user">
+      <div class="chat-bubble">what if we planned a weekend trip to Edinburgh?</div>
+      <div class="chat-av-sm">S</div>
+    </div>
+    <div class="chat-msg bot">
+      <div class="chat-av-sm">🧠</div>
+      <div class="chat-bubble">Ooh, travel! ✈️ Saved to Trips. That sounds exciting.</div>
+    </div>
+  </div>
+</section>
 
-// ────────────────────────────────────────────────────────────
-//  CHAT
-// ────────────────────────────────────────────────────────────
-function toggleChat() {
-  chatOpen = !chatOpen;
-  document.getElementById('chat').classList.toggle('on', chatOpen);
-  const fab = document.getElementById('fab');
-  fab.classList.toggle('open', chatOpen);
-  fab.textContent = chatOpen ? '✕' : '💬';
-  if (chatOpen) {
-    if (!document.getElementById('chat-msgs').children.length) greet();
-    setTimeout(() => document.getElementById('chat-ta').focus(), 260);
-  }
-}
+<section class="footer-cta">
+  <h2>Ready to get out of your head?</h2>
+  <p>Free to use. No apps to download. Works on any device.</p>
+  <div class="cta-group">
+    <a href="./second-brain.html" class="btn-primary">Create your board →</a>
+  </div>
+</section>
 
-function openChatFor(cat) {
-  hintCat = cat;
-  const m = meta(cat);
-  document.getElementById('chat-hint').textContent = `Adding to ${m.e} ${m.l}`;
-  if (!chatOpen) toggleChat();
-  else {
-    if (!document.getElementById('chat-msgs').children.length) greet();
-    setTimeout(() => addBot(`What ${m.l.toLowerCase()} would you like to add?`), 100);
-  }
-  setTimeout(() => document.getElementById('chat-ta').focus(), 300);
-}
+<footer>
+  <div>🧠 Second Brain — Built by Margi Desai</div>
+  <div class="footer-built">🤖 Built with Claude AI</div>
+</footer>
 
-function greet() {
-  const lines = [
-    `Hey ${partner}! 👋 What's on your mind? Just tell me — I'll sort it.`,
-    `Hi ${partner}! Dump anything here and I'll organise it 🧠`,
-    `Hey! What do you want to get off your mind?`,
-  ];
-  addBot(rand(lines));
-}
-
-function resetChat() {
-  document.getElementById('chat-msgs').innerHTML = '';
-  document.getElementById('chat-hint').textContent = 'Tell me anything — I\'ll sort it';
-  state   = 'ready';
-  pending = null;
-  hintCat = null;
-  greet();
-}
-
-function chatKey(ev) {
-  if (ev.key === 'Enter' && !ev.shiftKey) { ev.preventDefault(); send(); }
-}
-
-function grow(ta) {
-  ta.style.height = 'auto';
-  ta.style.height = Math.min(ta.scrollHeight, 90) + 'px';
-}
-
-function send() {
-  const ta   = document.getElementById('chat-ta');
-  const text = ta.value.trim();
-  if (!text) return;
-  addUser(text);
-  ta.value = ''; ta.style.height = 'auto';
-  state === 'await_cat' ? handleCatReply(text) : processMsg(text);
-}
-
-function processMsg(text) {
-  const lo = text.toLowerCase();
-
-  // Greetings
-  if (/^(hi|hey|hello|yo|sup|hiya)\b/.test(lo)) {
-    typing(() => addBot("Hey! 👋 What's on your mind?"));
-    return;
-  }
-  // Thanks
-  if (/\b(thank you|thanks|thx|ty)\b/.test(lo)) {
-    typing(() => addBot("Happy to help 🧠 Anything else?"));
-    return;
-  }
-  // Undo
-  if (/\b(undo|delete that|remove that|never mind|nevermind|scratch that)\b/.test(lo)) {
-    const last = entries.find(e => e.author === partner);
-    if (last) {
-      const preview = last.text.slice(0, 40) + (last.text.length > 40 ? '…' : '');
-      delEntry(last.id);
-      typing(() => addBot(`Removed "${preview}" 🗑`));
-    } else {
-      typing(() => addBot("Nothing recent to undo!"));
-    }
-    return;
-  }
-  // Summary
-  if (/\b(summary|overview|show (me )?everything|show all|what('?s| is) on (the )?board)\b/.test(lo)) {
-    showSummary();
-    return;
-  }
-  // Count
-  if (/\b(how many|count|total)\b/.test(lo)) {
-    const unseen = entries.filter(e => !e.acked && e.author !== partner).length;
-    typing(() => addBot(`${entries.length} items on the board total. ${unseen} new for you.`));
-    return;
-  }
-  // Show by author — match any household member name
-  if (/\b(what did|show)\b/.test(lo) && household?.members) {
-    const memberNames = Object.values(household.members).map(m => m.displayName);
-    const matched = memberNames.find(n => lo.includes(n.toLowerCase()));
-    if (matched) { showByAuthor(matched); return; }
-  }
-  // Show category
-  if (/\b(show|list|what).*(task|worr|idea|purchase|trip|admin)\b/.test(lo)) {
-    const w = lo.match(/task|worr|idea|purchase|trip|admin/)?.[0];
-    showList(w === 'admin' ? 'life-admin' : w.startsWith('worr') ? 'worry' : w);
-    return;
-  }
-
-  // Column hint — skip detection
-  if (hintCat) {
-    const cat = hintCat;
-    hintCat   = null;
-    document.getElementById('chat-hint').textContent = 'Tell me anything — I\'ll sort it';
-    typing(() => { addEntry(text, cat); addBot(botReply(cat)); });
-    return;
-  }
-
-  // Score-based categorization
-  const scored = scoreCats(text);
-  if (scored.length >= 2 && scored[0].score === scored[1].score) {
-    pending = text;
-    state   = 'await_cat';
-    typing(() => addBot(
-      `I could file this as a ${scored[0].cat.e} ${scored[0].cat.l.slice(0,-1)} or a ${scored[1].cat.e} ${scored[1].cat.l.slice(0,-1)}. Which fits better?`,
-      scored.slice(0, 3).map(h => ({ label: h.cat.e + ' ' + h.cat.l.slice(0,-1), val: h.cat.id }))
-    ));
-    return;
-  }
-
-  const cat = scored[0]?.cat.id || 'other';
-  typing(() => { addEntry(text, cat); addBot(botReply(cat)); });
-}
-
-function handleCatReply(reply) {
-  state = 'ready';
-  const lo = reply.toLowerCase();
-  let cat = null;
-  for (const c of CATS) {
-    if (lo.includes(c.id) || lo.includes(c.l.toLowerCase().replace(/s$/, ''))) { cat = c.id; break; }
-  }
-  if (!cat) cat = detectCat(pending || reply);
-  const text = pending || reply;
-  pending = null;
-  typing(() => { addEntry(text, cat); addBot(botReply(cat)); });
-}
-
-function showList(catId) {
-  const all  = entries.filter(e => e.category === catId);
-  const list = all.slice(0, 4);
-  typing(() => {
-    if (!list.length) { addBot("Nothing there yet! Add something?"); return; }
-    const lines = list.map(e => `• ${e.text.slice(0,55)}${e.text.length>55?'…':''}`).join('\n');
-    addBot(lines + (all.length > 4 ? `\n…and ${all.length - 4} more on the board.` : ''));
-  });
-}
-
-function showSummary() {
-  const allCols = [...CATS, OTHER];
-  const lines = allCols
-    .map(c => ({ c, count: entries.filter(e => e.category === c.id).length }))
-    .filter(x => x.count > 0)
-    .map(x => `${x.c.e} ${x.c.l}: ${x.count}`);
-  typing(() => {
-    if (!lines.length) { addBot("The board is empty! Add something first."); return; }
-    addBot(lines.join('\n'));
-  });
-}
-
-function showByAuthor(name) {
-  const all  = entries.filter(e => e.author === name);
-  const list = all.slice(0, 5);
-  typing(() => {
-    if (!list.length) { addBot(`${name} hasn't added anything yet!`); return; }
-    const lines = list.map(e => `${meta(e.category).e} ${e.text.slice(0,50)}${e.text.length>50?'…':''}`).join('\n');
-    addBot(lines + (all.length > 5 ? `\n…and ${all.length - 5} more.` : ''));
-  });
-}
-
-// ─── Chat UI helpers ──────────────────────────────────────────
-function addUser(text) {
-  const div = document.createElement('div');
-  div.className = 'msg user';
-  div.innerHTML = `<div class="bubble">${esc(text)}</div>`;
-  append(div);
-}
-
-function addBot(text, qrs) {
-  const tid = document.getElementById('typing-ind');
-  if (tid) tid.remove();
-  const div = document.createElement('div');
-  div.className = 'msg bot';
-  const qrHtml = qrs
-    ? `<div class="qrs">${qrs.map(q=>`<button class="qr" onclick="qrClick('${q.val}','${esc(q.label)}')">${q.label}</button>`).join('')}</div>`
-    : '';
-  div.innerHTML = `<div class="msg-icon">🧠</div><div><div class="bubble">${esc(text)}</div>${qrHtml}</div>`;
-  append(div);
-}
-
-function typing(cb, delay=680) {
-  const div = document.createElement('div');
-  div.className = 'msg bot'; div.id = 'typing-ind';
-  div.innerHTML = `<div class="msg-icon">🧠</div><div class="typing"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>`;
-  append(div);
-  setTimeout(cb, delay);
-}
-
-function qrClick(val, label) {
-  addUser(label);
-  if (state === 'await_cat') {
-    state = 'ready';
-    const text = pending || label; pending = null;
-    typing(() => { addEntry(text, val); addBot(rand(BOT[val] || BOT.other)); });
-  }
-}
-
-function append(el) {
-  const msgs = document.getElementById('chat-msgs');
-  msgs.appendChild(el);
-  setTimeout(() => msgs.scrollTop = msgs.scrollHeight, 40);
-}
-
-// ────────────────────────────────────────────────────────────
-//  REASSIGN
-// ────────────────────────────────────────────────────────────
-function openReassign(id) {
-  reassignTarget = id;
-  const e       = entries.find(x => x.id === id);
-  const allCats = [...CATS, OTHER];
-  document.getElementById('reassign-body').innerHTML = `
-    <p style="font-size:13px;color:#6B7280;margin-bottom:14px;">Choose a column to move this card to:</p>
-    <div style="display:flex;flex-direction:column;gap:8px;">
-      ${allCats.map(cat => {
-        const isCurrent = e?.category === cat.id && !e?.completed;
-        return `<button onclick="doReassign('${cat.id}')"
-          style="display:flex;align-items:center;gap:10px;padding:10px 14px;
-            border:1px solid ${isCurrent?'#6B4E71':'#E5E7EB'};
-            border-radius:10px;background:${isCurrent?'#F5F3FF':'white'};
-            cursor:pointer;font-size:13px;font-weight:500;text-align:left;width:100%;transition:background 0.12s;">
-          <span style="font-size:16px">${cat.e}</span>
-          <span>${cat.l}</span>
-          ${isCurrent?'<span style="margin-left:auto;font-size:11px;color:#6D28D9">current</span>':''}
-        </button>`;
-      }).join('')}
-    </div>`;
-  document.getElementById('reassign-overlay').classList.add('on');
-}
-
-function doReassign(cat) {
-  if (!reassignTarget) return;
-  const e = entries.find(x => x.id === reassignTarget);
-  if (e) {
-    e.category    = cat;
-    e.completed   = false;
-    e.completedBy = null;
-    e.completedAt = null;
-    saveEntries();
-  }
-  reassignTarget = null;
-  document.getElementById('reassign-overlay').classList.remove('on');
-}
-
-function closeReassign()        { reassignTarget = null; document.getElementById('reassign-overlay').classList.remove('on'); }
-function maybeCloseReassign(ev) { if (ev.target === document.getElementById('reassign-overlay')) closeReassign(); }
-
-// ────────────────────────────────────────────────────────────
-//  DIGEST
-// ────────────────────────────────────────────────────────────
-function openDigest() {
-  const cutoff = Date.now() - 7 * 864e5;
-  const week   = entries.filter(e => new Date(e.ts).getTime() >= cutoff);
-  const el     = document.getElementById('digest-body');
-
-  if (!week.length) {
-    el.innerHTML = '<p style="text-align:center;color:#9CA3AF;padding:24px 0;">No entries from the last 7 days.</p>';
-  } else {
-    const byCat = {};
-    week.forEach(e => (byCat[e.category] = byCat[e.category]||[]).push(e));
-    const unseen = week.filter(e => e.author !== partner && !e.acked).length;
-    const allC   = [...CATS, OTHER];
-
-    el.innerHTML = `
-      <div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;padding:11px 15px;margin-bottom:18px;font-size:13px;color:#92400E;">
-        <strong>${week.length}</strong> entries this week &nbsp;·&nbsp; <strong>${unseen}</strong> new for you
-      </div>
-      ${allC.filter(c => byCat[c.id]?.length).map(cat => `
-        <div style="margin-bottom:16px;">
-          <div style="font-size:12.5px;font-weight:600;color:#374151;margin-bottom:7px;">${cat.e} ${cat.l} <span style="color:#9CA3AF;font-weight:400;">(${byCat[cat.id].length})</span></div>
-          ${byCat[cat.id].map(e=>`
-            <div style="display:flex;gap:8px;margin-bottom:5px;font-size:12.5px;color:#4B5563;line-height:1.4;">
-              <span style="width:6px;height:6px;border-radius:50%;background:${PC[e.author]||'#ccc'};flex-shrink:0;margin-top:5px;"></span>
-              <span>${esc(e.text)}</span>
-            </div>`).join('')}
-        </div>`).join('')}
-      <div style="border-top:1px solid #F3F4F6;padding-top:14px;display:flex;justify-content:flex-end;">
-        <button onclick="if(confirm('Clear all?')){entries=[];saveEntries();renderBoard();closeOverlay();}"
-          style="font-size:11px;color:#FCA5A5;background:none;border:none;cursor:pointer;">Clear all entries</button>
-      </div>`;
-  }
-  document.getElementById('overlay').classList.add('on');
-}
-
-function closeOverlay() { document.getElementById('overlay').classList.remove('on'); }
-function maybeClose(ev) { if (ev.target === document.getElementById('overlay')) closeOverlay(); }
-
-</script>
 </body>
 </html>

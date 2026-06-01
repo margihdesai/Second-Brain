@@ -920,23 +920,45 @@ async function doJoin() {
 }
 
 // ─── INVITE ──────────────────────────────────────────────────
+let _inviteLink = '';
+
 function showInvite() {
   const members  = Object.values(household?.members || {});
   const code     = household?.inviteCode || '------';
-  const joinLink = `https://margihdesai.github.io/Second-Brain/second-brain.html?code=${code}`;
+  _inviteLink    = `https://margihdesai.github.io/Second-Brain/second-brain.html?code=${code}`;
 
   document.getElementById('invite-body').innerHTML = `
     <p style="font-size:13px;color:#6B7280;margin-bottom:8px;">Share this code with anyone you want to invite:</p>
     <div class="invite-code">${code}</div>
-    <p class="invite-hint">They sign in, tap "Join board", and enter this code — or just send them the link below.</p>
 
-    <div style="margin-top:16px;background:#F9FAFB;border:1px solid #E5E7EB;border-radius:10px;padding:12px 14px;">
-      <div style="font-size:11px;font-weight:600;color:#6B7280;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em;">Direct join link</div>
-      <div style="font-size:12px;color:#374151;word-break:break-all;line-height:1.5;margin-bottom:10px;">${joinLink}</div>
-      <button id="copy-link-btn" onclick="copyInviteLink('${joinLink}')"
-        style="width:100%;padding:9px;border-radius:8px;border:none;background:#2D2535;color:white;font-size:13px;font-weight:600;cursor:pointer;">
-        📋 Copy link
-      </button>
+    <div style="margin-top:16px;border:1px solid #E5E7EB;border-radius:12px;overflow:hidden;">
+
+      <!-- Email invite section -->
+      <div style="padding:14px;border-bottom:1px solid #F3F4F6;">
+        <div style="font-size:11px;font-weight:600;color:#6B7280;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em;">✉️ Email an invite</div>
+        <div style="display:flex;gap:8px;">
+          <input id="invite-email-input" type="email" placeholder="friend@example.com"
+            style="flex:1;padding:9px 12px;border:1px solid #E5E7EB;border-radius:8px;font-size:13px;font-family:inherit;outline:none;color:#374151;min-width:0;"
+            onkeydown="if(event.key==='Enter')sendInviteEmail()">
+          <button id="invite-send-btn" onclick="sendInviteEmail()"
+            style="padding:9px 16px;border-radius:8px;border:none;background:#2D2535;color:white;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;">
+            Send →
+          </button>
+        </div>
+        <div id="invite-email-status" style="font-size:11.5px;margin-top:6px;min-height:16px;color:#9CA3AF;">
+          Opens your email app with everything pre-filled — just hit Send.
+        </div>
+      </div>
+
+      <!-- Copy link section -->
+      <div style="padding:14px;">
+        <div style="font-size:11px;font-weight:600;color:#6B7280;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em;">🔗 Or copy the link</div>
+        <div style="font-size:11.5px;color:#6B7280;word-break:break-all;line-height:1.5;margin-bottom:8px;">${_inviteLink}</div>
+        <button id="copy-link-btn" onclick="copyInviteLink()"
+          style="width:100%;padding:9px;border-radius:8px;border:1px solid #E5E7EB;background:white;color:#374151;font-size:13px;font-weight:500;cursor:pointer;">
+          📋 Copy link
+        </button>
+      </div>
     </div>
 
     <div style="margin-top:18px;border-top:1px solid #F3F4F6;padding-top:14px;">
@@ -947,15 +969,47 @@ function showInvite() {
         ${m.email===currentUser?.email?'<span style="font-size:11px;color:#9CA3AF;">(you)</span>':''}
       </div>`).join('')}
     </div>`;
+
   document.getElementById('invite-overlay').classList.add('on');
+  setTimeout(() => document.getElementById('invite-email-input')?.focus(), 100);
 }
-function copyInviteLink(url) {
-  navigator.clipboard.writeText(url).then(() => {
+
+function sendInviteEmail() {
+  const input  = document.getElementById('invite-email-input');
+  const btn    = document.getElementById('invite-send-btn');
+  const status = document.getElementById('invite-email-status');
+  const toEmail = input.value.trim();
+
+  if (!toEmail || !toEmail.includes('@')) {
+    status.textContent = 'Please enter a valid email address.';
+    status.style.color = '#DC2626';
+    return;
+  }
+
+  const boardName = household?.name || 'Second Brain';
+  const subject   = encodeURIComponent(`${partner} invited you to join "${boardName}" on Second Brain 🧠`);
+  const body      = encodeURIComponent(
+    `Hi!\n\n${partner} has invited you to join the shared board "${boardName}" on Second Brain.\n\n` +
+    `Click this link to join — the code is already filled in for you:\n${_inviteLink}\n\n` +
+    `Or go to https://margihdesai.github.io/Second-Brain/second-brain.html and enter invite code: ${household?.inviteCode}\n\n` +
+    `See you there! 🧠`
+  );
+
+  window.location.href = `mailto:${encodeURIComponent(toEmail)}?subject=${subject}&body=${body}`;
+
+  btn.textContent = '✓ Email opened!';
+  status.textContent = `Your email app should open with a message to ${toEmail}.`;
+  status.style.color = '#16A34A';
+  setTimeout(() => { btn.textContent = 'Send →'; input.value = ''; status.textContent = ''; status.style.color = '#9CA3AF'; }, 4000);
+}
+
+function copyInviteLink() {
+  navigator.clipboard.writeText(_inviteLink).then(() => {
     const btn = document.getElementById('copy-link-btn');
     if (btn) { btn.textContent = '✓ Copied!'; setTimeout(() => { btn.textContent = '📋 Copy link'; }, 2000); }
   }).catch(() => {
     const btn = document.getElementById('copy-link-btn');
-    if (btn) btn.textContent = 'Copy failed — select the link above';
+    if (btn) btn.textContent = 'Select the link above and copy manually';
   });
 }
 

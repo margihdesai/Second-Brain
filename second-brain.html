@@ -594,6 +594,7 @@
     .chat-send:hover { background: #4A3D55; transform: scale(1.06); }
 
     /* ─── OVERLAY ────────────────────────────────── */
+    .modal-wide { max-width: 860px; }
     .overlay {
       display: none;
       position: fixed;
@@ -655,6 +656,7 @@
   </div>
   <div class="hdr-right">
     <button class="ghost-btn" id="invite-btn" onclick="showInvite()" style="display:none">🔗 Invite</button>
+    <button class="ghost-btn" id="dashboard-btn" onclick="openDashboard()" style="display:none">🛠 Dashboard</button>
     <button class="ghost-btn insights-btn" onclick="openInsights()">📊 Insights</button>
     <button class="ghost-btn digest-btn" onclick="openDigest()">🗓 Weekly Digest</button>
     <button class="ghost-btn" onclick="signOut()" id="signout-btn" style="display:none">Sign out</button>
@@ -736,6 +738,17 @@
   </div>
 </div>
 
+<!-- ─── FOUNDER DASHBOARD OVERLAY ───────────────────────── -->
+<div class="overlay" id="dashboard-overlay" onclick="maybeCloseDashboard(event)">
+  <div class="modal modal-wide">
+    <div class="modal-head">
+      <span class="modal-title">🛠 Founder Dashboard</span>
+      <button class="modal-close" onclick="closeDashboard()">×</button>
+    </div>
+    <div id="dashboard-body"></div>
+  </div>
+</div>
+
 <!-- ─── CARD DETAIL OVERLAY ───────────────────────────── -->
 <div class="overlay" id="detail-overlay" onclick="maybeCloseDetail(event)">
   <div class="modal">
@@ -792,6 +805,26 @@ let household    = null;
 //  AUTH
 // ────────────────────────────────────────────────────────────
 const MEMBER_COLORS = ['#E07A5F','#3D8B8F','#6B4E71','#E9C46A','#2A9D8F','#E76F51'];
+const ADMIN_EMAIL   = 'dilsamargi@gmail.com';
+
+// ─── ANALYTICS ───────────────────────────────────────────────
+function trackUser() {
+  if (!currentUser) return;
+  try {
+    const ref = db.ref(`analytics/users/${currentUser.uid}`);
+    ref.once('value').then(snap => {
+      const updates = { lastSeen: new Date().toISOString(), email: currentUser.email, displayName: partner || currentUser.displayName || 'Unknown' };
+      if (!snap.exists()) updates.firstSeen = new Date().toISOString();
+      ref.update(updates);
+    });
+  } catch(e) {}
+}
+
+function trackEvent(type, extra = {}) {
+  if (!currentUser) return;
+  try { db.ref('analytics/events').push({ type, uid: currentUser.uid, ts: new Date().toISOString(), ...extra }); }
+  catch(e) {}
+}
 
 function signIn() {
   try {
@@ -854,6 +887,12 @@ async function loadHousehold(hid) {
   document.getElementById('board-name').textContent = household.name || 'Second Brain';
   document.getElementById('setup-screen').style.display = 'none';
   document.getElementById('invite-btn').style.display = '';
+  if (currentUser.email === ADMIN_EMAIL) {
+    document.getElementById('dashboard-btn').style.display = '';
+  }
+
+  trackUser();
+  trackEvent('user_signin');
 
   entriesRef.on('value', snap => {
     const data = snap.val();
@@ -996,6 +1035,7 @@ function sendInviteEmail() {
   );
 
   window.location.href = `mailto:${encodeURIComponent(toEmail)}?subject=${subject}&body=${body}`;
+  trackEvent('invite_sent');
 
   btn.textContent = '✓ Email opened!';
   status.textContent = `Your email app should open with a message to ${toEmail}.`;
@@ -1004,6 +1044,7 @@ function sendInviteEmail() {
 }
 
 function copyInviteLink() {
+  trackEvent('invite_link_copied');
   navigator.clipboard.writeText(_inviteLink).then(() => {
     const btn = document.getElementById('copy-link-btn');
     if (btn) { btn.textContent = '✓ Copied!'; setTimeout(() => { btn.textContent = '📋 Copy link'; }, 2000); }
@@ -1160,6 +1201,7 @@ function addEntry(text, cat) {
               dueDate: null, notes: '' };
   entries.unshift(e);
   saveEntries();
+  trackEvent('entry_added', { category: cat });
   return e;
 }
 
@@ -1187,6 +1229,7 @@ function ackEntry(id) {
   e.acked = !e.acked;
   e.ackedBy = e.acked ? partner : null;
   saveEntries();
+  if (e.acked) trackEvent('entry_acked');
 }
 
 function completeEntry(id) {
@@ -1195,12 +1238,14 @@ function completeEntry(id) {
   e.completed    = !e.completed;
   e.completedBy  = e.completed ? partner : null;
   e.completedAt  = e.completed ? new Date().toISOString() : null;
+  if (e.completed) trackEvent('entry_completed', { category: e.category });
   saveEntries();
 }
 
 function delEntry(id) {
   entries = entries.filter(x => x.id !== id);
   saveEntries();
+  trackEvent('entry_deleted');
 }
 
 // ────────────────────────────────────────────────────────────
@@ -1228,7 +1273,7 @@ function drop(ev, cat) {
   ev.currentTarget.classList.remove('over');
   if (!dragId) return;
   const e = entries.find(x => x.id === dragId);
-  if (e && e.category !== cat) { e.category = cat; saveEntries(); renderBoard(); }
+  if (e && e.category !== cat) { e.category = cat; saveEntries(); renderBoard(); trackEvent('drag_used'); }
   dragId = null;
 }
 
@@ -1572,6 +1617,7 @@ function doReassign(cat) {
     e.completedBy = null;
     e.completedAt = null;
     saveEntries();
+    trackEvent('entry_reassigned', { to: cat });
   }
   reassignTarget = null;
   document.getElementById('reassign-overlay').classList.remove('on');
@@ -1584,6 +1630,7 @@ function maybeCloseReassign(ev) { if (ev.target === document.getElementById('rea
 //  DIGEST
 // ────────────────────────────────────────────────────────────
 function openDigest() {
+  trackEvent('digest_opened');
   const cutoff = Date.now() - 7 * 864e5;
   const week   = entries.filter(e => new Date(e.ts).getTime() >= cutoff);
   const el     = document.getElementById('digest-body');
@@ -1659,13 +1706,18 @@ function openCardDetail(id) {
     </div>`;
 
   document.getElementById('detail-overlay').classList.add('on');
+  trackEvent('card_detail_opened', { category: e.category });
 }
 
 function saveCardDetail() {
   const e = entries.find(x => x.id === detailTarget);
   if (!e) return;
-  e.dueDate = document.getElementById('detail-due').value || null;
-  e.notes   = document.getElementById('detail-notes').value;
+  const newDue   = document.getElementById('detail-due').value || null;
+  const newNotes = document.getElementById('detail-notes').value;
+  if (newDue && newDue !== e.dueDate)     trackEvent('due_date_set');
+  if (newNotes && newNotes !== e.notes)   trackEvent('notes_saved');
+  e.dueDate = newDue;
+  e.notes   = newNotes;
   saveEntries();
   closeCardDetail();
 }
@@ -1677,6 +1729,7 @@ function maybeCloseDetail(ev)    { if (ev.target === document.getElementById('de
 //  INSIGHTS
 // ────────────────────────────────────────────────────────────
 function openInsights() {
+  trackEvent('insights_opened');
   const total     = entries.length;
   const completed = entries.filter(e => e.completed).length;
   const pending   = total - completed;
@@ -1774,6 +1827,7 @@ function initVoice() {
     ta.value   = text;
     grow(ta);
     setListening(false);
+    trackEvent('voice_used');
     setTimeout(send, 120);
   };
   recognition.onerror = () => setListening(false);
@@ -1807,6 +1861,164 @@ function setListening(val) {
   btn.title       = val ? 'Listening… tap to stop' : 'Speak your thought';
   btn.textContent = val ? '⏹' : '🎤';
 }
+
+// ────────────────────────────────────────────────────────────
+//  FOUNDER DASHBOARD
+// ────────────────────────────────────────────────────────────
+async function openDashboard() {
+  const el = document.getElementById('dashboard-body');
+  el.innerHTML = '<div style="text-align:center;padding:40px;color:#9CA3AF;font-size:13px;">Loading data…</div>';
+  document.getElementById('dashboard-overlay').classList.add('on');
+
+  try {
+    const [usersSnap, eventsSnap] = await Promise.all([
+      db.ref('analytics/users').once('value'),
+      db.ref('analytics/events').once('value'),
+    ]);
+    const users  = usersSnap.val()  ? Object.values(usersSnap.val())  : [];
+    const events = eventsSnap.val() ? Object.values(eventsSnap.val()) : [];
+    renderDashboard(users, events);
+  } catch(err) {
+    el.innerHTML = `<div style="color:#DC2626;padding:20px;font-size:13px;line-height:1.6;">
+      <strong>Could not load analytics.</strong><br><br>
+      Add this to your Firebase rules and publish:<br>
+      <code style="background:#F3F4F6;padding:3px 6px;border-radius:4px;">"analytics": { ".read": "auth != null", ".write": "auth != null" }</code>
+    </div>`;
+  }
+}
+
+function renderDashboard(users, events) {
+  const now  = Date.now();
+  const d7   = now - 7*864e5;
+  const d30  = now - 30*864e5;
+
+  const totalUsers  = users.length;
+  const active7d    = users.filter(u => new Date(u.lastSeen) > d7).length;
+  const activeToday = users.filter(u => now - new Date(u.lastSeen) < 864e5).length;
+
+  const recent30 = events.filter(e => new Date(e.ts) > d30);
+  const totalEvt = recent30.length;
+
+  // Feature usage
+  const featureCounts = {};
+  recent30.forEach(e => { featureCounts[e.type] = (featureCounts[e.type]||0) + 1; });
+  const LABELS = {
+    entry_added:'📝 Entry added', chat_opened:'💬 Chat opened', voice_used:'🎤 Voice input',
+    entry_completed:'✓ Marked complete', entry_deleted:'🗑 Deleted', entry_acked:'👋 Acknowledged',
+    entry_reassigned:'⇢ Reassigned', card_detail_opened:'🔍 Card detail', notes_saved:'📓 Notes saved',
+    due_date_set:'📅 Due date set', insights_opened:'📊 Insights viewed', digest_opened:'🗓 Digest viewed',
+    invite_sent:'✉️ Invite emailed', invite_link_copied:'🔗 Invite link copied', drag_used:'↕️ Drag & drop',
+  };
+  const featureSorted = Object.entries(featureCounts)
+    .filter(([k]) => LABELS[k]).sort((a,b)=>b[1]-a[1]);
+  const maxF = Math.max(...featureSorted.map(f=>f[1]), 1);
+
+  // Category breakdown
+  const catCounts = {};
+  recent30.filter(e=>e.type==='entry_added'&&e.category).forEach(e=>{
+    catCounts[e.category]=(catCounts[e.category]||0)+1;
+  });
+
+  // Signups per day (last 7)
+  const days = Array.from({length:7}, (_,i) => {
+    const d = new Date(now - (6-i)*864e5);
+    return { label: d.toLocaleDateString('en-US',{weekday:'short'}), str: d.toDateString() };
+  });
+  const perDay   = days.map(dl => users.filter(u=>new Date(u.firstSeen).toDateString()===dl.str).length);
+  const maxDay   = Math.max(...perDay, 1);
+
+  // User table
+  const usersSorted = [...users].sort((a,b)=>new Date(b.lastSeen)-new Date(a.lastSeen));
+
+  const statCard = (n, label, bg, col) =>
+    `<div style="background:${bg};border-radius:12px;padding:14px;text-align:center;">
+      <div style="font-size:26px;font-weight:700;color:${col};">${n}</div>
+      <div style="font-size:11px;color:${col==='white'?'rgba(255,255,255,.65)':'#9CA3AF'};margin-top:3px;">${label}</div>
+    </div>`;
+
+  document.getElementById('dashboard-body').innerHTML = `
+    <!-- Stat cards -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:22px;">
+      ${statCard(totalUsers,  'Total users',    '#2D2535', 'white')}
+      ${statCard(active7d,    'Active 7d',       '#EFF6FF', '#1D4ED8')}
+      ${statCard(activeToday, 'Active today',    '#F0FDF4', '#16A34A')}
+      ${statCard(totalEvt,    'Events (30d)',    '#F5F3FF', '#6D28D9')}
+    </div>
+
+    <!-- Feature usage + Signups side by side -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px;">
+
+      <div style="background:#F9FAFB;border-radius:12px;padding:16px;">
+        <div style="font-size:12px;font-weight:700;color:#374151;margin-bottom:12px;">Feature usage — last 30 days</div>
+        ${featureSorted.length ? featureSorted.map(([type,count])=>`
+          <div style="display:flex;align-items:center;gap:7px;margin-bottom:8px;">
+            <span style="font-size:11px;color:#6B7280;width:144px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${LABELS[type]}</span>
+            <div style="flex:1;background:#E5E7EB;border-radius:50px;height:7px;">
+              <div style="width:${Math.round(count/maxF*100)}%;height:100%;border-radius:50px;background:#6B4E71;min-width:3px;"></div>
+            </div>
+            <span style="font-size:11px;font-weight:700;color:#374151;width:22px;text-align:right;">${count}</span>
+          </div>`).join('')
+        : '<div style="font-size:12px;color:#9CA3AF;text-align:center;padding:20px 0;">No events yet.<br>Start using the app!</div>'}
+      </div>
+
+      <div style="background:#F9FAFB;border-radius:12px;padding:16px;">
+        <div style="font-size:12px;font-weight:700;color:#374151;margin-bottom:12px;">New signups — last 7 days</div>
+        <div style="display:flex;align-items:flex-end;gap:5px;height:80px;margin-bottom:8px;">
+          ${days.map((dl,i)=>`
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;height:100%;">
+              <div style="flex:1;width:100%;display:flex;align-items:flex-end;">
+                <div style="width:100%;background:${perDay[i]>0?'#6B4E71':'#E5E7EB'};border-radius:4px 4px 0 0;
+                  height:${Math.max(Math.round(perDay[i]/maxDay*64),perDay[i]>0?6:2)}px;transition:height 0.3s;"></div>
+              </div>
+              <span style="font-size:9px;color:#9CA3AF;">${dl.label}</span>
+            </div>`).join('')}
+        </div>
+        <div style="font-size:11px;color:#9CA3AF;text-align:center;">${perDay.reduce((a,b)=>a+b,0)} new this week · ${totalUsers} total</div>
+        ${Object.keys(catCounts).length ? `
+        <div style="margin-top:14px;border-top:1px solid #E5E7EB;padding-top:12px;">
+          <div style="font-size:11px;font-weight:600;color:#374151;margin-bottom:8px;">Top categories (30d)</div>
+          <div style="display:flex;flex-wrap:wrap;gap:5px;">
+            ${Object.entries(catCounts).sort((a,b)=>b[1]-a[1]).map(([cat,count])=>{
+              const m = [...CATS,OTHER].find(c=>c.id===cat)||OTHER;
+              return `<span style="background:white;border:1px solid #E5E7EB;border-radius:6px;padding:3px 9px;font-size:11px;color:#374151;">${m.e} ${m.l} <strong>${count}</strong></span>`;
+            }).join('')}
+          </div>
+        </div>` : ''}
+      </div>
+    </div>
+
+    <!-- User table -->
+    <div style="background:#F9FAFB;border-radius:12px;padding:16px;">
+      <div style="font-size:12px;font-weight:700;color:#374151;margin-bottom:12px;">All users (${totalUsers})</div>
+      ${usersSorted.length ? `
+      <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:12px;">
+          <thead>
+            <tr style="border-bottom:1px solid #E5E7EB;text-align:left;">
+              ${['Name','Email','First seen','Last seen','Status'].map(h=>`<th style="padding:7px 10px;color:#6B7280;font-weight:600;">${h}</th>`).join('')}
+            </tr>
+          </thead>
+          <tbody>
+            ${usersSorted.map(u=>{
+              const since = now - new Date(u.lastSeen);
+              const [badge,bcol,bbg] = since<864e5 ? ['Active today','#16A34A','#F0FDF4']
+                : since<7*864e5 ? ['Active 7d','#D97706','#FFFBEB'] : ['Dormant','#9CA3AF','#F3F4F6'];
+              return `<tr style="border-bottom:1px solid #F3F4F6;">
+                <td style="padding:8px 10px;font-weight:500;color:#1F2937;">${esc(u.displayName||'—')}</td>
+                <td style="padding:8px 10px;color:#6B7280;">${esc(u.email||'—')}</td>
+                <td style="padding:8px 10px;color:#9CA3AF;">${u.firstSeen?new Date(u.firstSeen).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'2-digit'}):'—'}</td>
+                <td style="padding:8px 10px;color:#9CA3AF;">${u.lastSeen?ago(u.lastSeen):'—'}</td>
+                <td style="padding:8px 10px;"><span style="font-size:10px;padding:2px 8px;border-radius:50px;background:${bbg};color:${bcol};font-weight:600;">${badge}</span></td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>` : '<div style="font-size:12px;color:#9CA3AF;text-align:center;padding:20px;">No users tracked yet — data appears as people use the app.</div>'}
+    </div>`;
+}
+
+function closeDashboard()        { document.getElementById('dashboard-overlay').classList.remove('on'); }
+function maybeCloseDashboard(ev) { if (ev.target===document.getElementById('dashboard-overlay')) closeDashboard(); }
 
 </script>
 </body>

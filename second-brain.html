@@ -648,6 +648,12 @@
   </div>
 </div>
 
+<!-- ─── DEMO BANNER ──────────────────────────────────── -->
+<div id="demo-banner" style="display:none;background:linear-gradient(135deg,#6B4E71,#2D2535);color:white;padding:11px 20px;text-align:center;font-size:13px;align-items:center;justify-content:center;gap:16px;flex-wrap:wrap;">
+  <span>👀 Demo mode — explore a sample board, no sign-in needed</span>
+  <a href="./second-brain.html" style="background:white;color:#2D2535;padding:5px 16px;border-radius:50px;font-size:12px;font-weight:700;text-decoration:none;white-space:nowrap;">Create your own board →</a>
+</div>
+
 <!-- ─── HEADER ──────────────────────────────────────── -->
 <header>
   <div class="logo">
@@ -801,6 +807,9 @@ let entriesRef   = null;
 let currentUser  = null;
 let household    = null;
 
+const demoMode = new URLSearchParams(window.location.search).get('demo') === 'true';
+if (demoMode) document.getElementById('login-screen').style.display = 'none';
+
 // ────────────────────────────────────────────────────────────
 //  AUTH
 // ────────────────────────────────────────────────────────────
@@ -814,7 +823,10 @@ function trackUser() {
     const ref = db.ref(`analytics/users/${currentUser.uid}`);
     ref.once('value').then(snap => {
       const updates = { lastSeen: new Date().toISOString(), email: currentUser.email, displayName: partner || currentUser.displayName || 'Unknown' };
-      if (!snap.exists()) updates.firstSeen = new Date().toISOString();
+      if (!snap.exists()) {
+        updates.firstSeen = new Date().toISOString();
+        db.ref('publicStats/users').transaction(n => (n||0) + 1);
+      }
       ref.update(updates);
     });
   } catch(e) {}
@@ -844,6 +856,7 @@ function signOut() {
 }
 
 firebase.auth().onAuthStateChanged(async user => {
+  if (demoMode) return;
   if (user) {
     currentUser = user;
     document.getElementById('login-screen').style.display = 'none';
@@ -887,7 +900,7 @@ async function loadHousehold(hid) {
   document.getElementById('board-name').textContent = household.name || 'Second Brain';
   document.getElementById('setup-screen').style.display = 'none';
   document.getElementById('invite-btn').style.display = '';
-  if (currentUser.email === ADMIN_EMAIL) {
+  if (currentUser.email?.toLowerCase() === ADMIN_EMAIL) {
     document.getElementById('dashboard-btn').style.display = '';
   }
 
@@ -933,6 +946,7 @@ async function doCreate() {
       members: { [uid]: { displayName: myName, email: currentUser.email, color: MEMBER_COLORS[0], joinedAt: new Date().toISOString() } }
     });
     await db.ref(`userHouseholds/${uid}`).set(hid);
+    try { db.ref('publicStats/households').transaction(n => (n||0) + 1); } catch(e) {}
     await loadHousehold(hid);
   } catch(e) { document.getElementById('setup-error').textContent = 'Error: ' + e.message; }
 }
@@ -1109,6 +1123,21 @@ const CATS = [
 const OTHER      = { id:'other',     e:'📝', l:'Other' };
 const COMPLETED  = { id:'completed', e:'☑️',  l:'Completed' };
 
+const DEMO_ENTRIES = [
+  { id:'d1',  text:'Call the dentist — overdue for a check-up', author:'Margi', category:'task', ts:new Date(Date.now()-1*3600000).toISOString(), acked:false, ackedBy:null, completed:false, completedBy:null, completedAt:null, dueDate:new Date(Date.now()+3*864e5).toISOString().split('T')[0], notes:'Dr. Patel: 020 7123 4567' },
+  { id:'d2',  text:'Worried about the mortgage renewal — rates keep rising', author:'Samarth', category:'worry', ts:new Date(Date.now()-4*3600000).toISOString(), acked:true, ackedBy:'Margi', completed:false, completedBy:null, completedAt:null, dueDate:null, notes:'' },
+  { id:'d3',  text:'What if we started a weekly no-phones dinner night?', author:'Margi', category:'idea', ts:new Date(Date.now()-1*864e5).toISOString(), acked:false, ackedBy:null, completed:false, completedBy:null, completedAt:null, dueDate:null, notes:'Maybe every Thursday — try the Italian place on the high street?' },
+  { id:'d4',  text:'Reorder coffee pods — nearly out', author:'Samarth', category:'purchase', ts:new Date(Date.now()-2*864e5).toISOString(), acked:true, ackedBy:'Margi', completed:false, completedBy:null, completedAt:null, dueDate:null, notes:'' },
+  { id:'d5',  text:'Plan weekend trip to Lisbon — look at flights for September', author:'Margi', category:'trip', ts:new Date(Date.now()-3*864e5).toISOString(), acked:false, ackedBy:null, completed:false, completedBy:null, completedAt:null, dueDate:null, notes:'Budget £1,500 each · aim for 10 days' },
+  { id:'d6',  text:'Renew car insurance before it expires end of month', author:'Samarth', category:'life-admin', ts:new Date(Date.now()-2*864e5).toISOString(), acked:true, ackedBy:'Margi', completed:false, completedBy:null, completedAt:null, dueDate:new Date(Date.now()+8*864e5).toISOString().split('T')[0], notes:'' },
+  { id:'d7',  text:'Pay the electricity bill', author:'Samarth', category:'task', ts:new Date(Date.now()-5*864e5).toISOString(), acked:true, ackedBy:'Margi', completed:true, completedBy:'Samarth', completedAt:new Date(Date.now()-1*864e5).toISOString(), dueDate:null, notes:'' },
+  { id:'d8',  text:'New running shoes — knees hurting in old ones', author:'Margi', category:'purchase', ts:new Date(Date.now()-4*864e5).toISOString(), acked:true, ackedBy:'Samarth', completed:false, completedBy:null, completedAt:null, dueDate:null, notes:'Brooks Ghost or ASICS Gel-Nimbus · size 7' },
+  { id:'d9',  text:'Anxious about the Q3 performance review next week', author:'Margi', category:'worry', ts:new Date(Date.now()-30*60000).toISOString(), acked:false, ackedBy:null, completed:false, completedBy:null, completedAt:null, dueDate:null, notes:'' },
+  { id:'d10', text:'Book flights to New York for mum\'s 60th birthday', author:'Samarth', category:'trip', ts:new Date(Date.now()-6*864e5).toISOString(), acked:true, ackedBy:'Margi', completed:true, completedBy:'Samarth', completedAt:new Date(Date.now()-2*864e5).toISOString(), dueDate:null, notes:'' },
+  { id:'d11', text:'Research standing desk options — back has been bad', author:'Margi', category:'purchase', ts:new Date(Date.now()-7*864e5).toISOString(), acked:false, ackedBy:null, completed:false, completedBy:null, completedAt:null, dueDate:null, notes:'' },
+  { id:'d12', text:'File the tax return — deadline end of January', author:'Samarth', category:'life-admin', ts:new Date(Date.now()-3*864e5).toISOString(), acked:true, ackedBy:'Margi', completed:false, completedBy:null, completedAt:null, dueDate:new Date(Date.now()+20*864e5).toISOString().split('T')[0], notes:'' },
+];
+
 const BOT = {
   task:        ["Added ✅ — on your task list.", "Got it ✅. I'll keep that for you.", "Noted ✅ and saved.", "On the list ✅!"],
   worry:       ["Saved 💭. You can let it go for now.", "I hear you 💭. It's safe here.", "Captured 💭 — it's on the board.", "Got it 💭. You don't have to hold that alone."],
@@ -1138,6 +1167,7 @@ function isMobile() { return window.innerWidth <= 640; }
 function setTab(catId) { activeTab = catId; renderBoard(); }
 
 function saveEntries() {
+  if (demoMode) { renderBoard(); return; }
   if (!entriesRef) return;
   const obj = {};
   entries.forEach(e => { obj[e.id] = e; });
@@ -1202,6 +1232,7 @@ function addEntry(text, cat) {
   entries.unshift(e);
   saveEntries();
   trackEvent('entry_added', { category: cat });
+  if (!demoMode) try { db.ref('publicStats/entries').transaction(n => (n||0) + 1); } catch(e) {}
   return e;
 }
 
@@ -2019,6 +2050,30 @@ function renderDashboard(users, events) {
 
 function closeDashboard()        { document.getElementById('dashboard-overlay').classList.remove('on'); }
 function maybeCloseDashboard(ev) { if (ev.target===document.getElementById('dashboard-overlay')) closeDashboard(); }
+
+// ────────────────────────────────────────────────────────────
+//  DEMO MODE INIT (runs after all functions are defined)
+// ────────────────────────────────────────────────────────────
+if (demoMode) {
+  partner   = 'Margi';
+  household = {
+    id: 'demo', name: 'Margi & Samarth', inviteCode: 'DEMO01',
+    members: {
+      u1: { displayName: 'Margi',   email: 'margi@demo.com',   color: '#E07A5F' },
+      u2: { displayName: 'Samarth', email: 'samarth@demo.com', color: '#3D8B8F' },
+    }
+  };
+  entries = [...DEMO_ENTRIES];
+  document.getElementById('demo-banner').style.display  = 'flex';
+  document.getElementById('board-name').textContent     = 'Margi & Samarth';
+  document.getElementById('invite-btn').style.display   = 'none';
+  renderBoard();
+  // Greet after a short delay so the board renders first
+  setTimeout(() => {
+    toggleChat();
+    setTimeout(() => addBot("👋 Welcome to the demo! This is a sample household board.\n\nTry typing anything — I'll sort it. Or click a card to see details.\n\nReady to create your own? Hit \"Create your own board →\" above."), 400);
+  }, 800);
+}
 
 </script>
 </body>

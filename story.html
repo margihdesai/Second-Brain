@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Story — Second Brain</title>
+  <meta name="description" content="How a PM built a real product using AI — the vision, the tradeoffs, the opportunity, and every building step along the way.">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:     #EEEAE3;
+      --dark:   #2D2535;
+      --coral:  #E07A5F;
+      --teal:   #3D8B8F;
+      --muted:  #6B7280;
+      --border: #E5E7EB;
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg); color: var(--dark); overflow-x: hidden;
+    }
+
+    /* ─── NAV ─────────────────────────────────────── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(238,234,227,0.92); backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(0,0,0,0.06);
+      padding: 0 24px; height: 56px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .nav-logo { font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px; text-decoration: none; color: var(--dark); }
+    .nav-links { display: flex; align-items: center; gap: 6px; }
+    .nav-link {
+      padding: 6px 14px; border-radius: 50px; font-size: 13px; font-weight: 500;
+      text-decoration: none; color: var(--muted); transition: all 0.15s;
+    }
+    .nav-link:hover { color: var(--dark); background: rgba(0,0,0,0.05); }
+    .nav-link.active { color: var(--dark); font-weight: 600; }
+    .nav-cta {
+      padding: 8px 20px; border-radius: 50px;
+      background: var(--dark); color: white;
+      font-size: 13px; font-weight: 600;
+      text-decoration: none; transition: all 0.15s;
+    }
+    .nav-cta:hover { background: #4A3D55; }
+
+    /* ─── HERO ────────────────────────────────────── */
+    .story-hero {
+      text-align: center; padding: 80px 24px 64px;
+      max-width: 760px; margin: 0 auto;
+    }
+    .eyebrow {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: white; border: 1px solid var(--border);
+      border-radius: 50px; padding: 5px 14px;
+      font-size: 12px; font-weight: 600; color: var(--coral);
+      margin-bottom: 28px; letter-spacing: 0.05em; text-transform: uppercase;
+    }
+    .story-hero h1 {
+      font-size: clamp(34px, 6vw, 58px); font-weight: 800;
+      line-height: 1.1; letter-spacing: -0.03em; margin-bottom: 20px;
+    }
+    .story-hero h1 span { color: var(--coral); }
+    .story-hero p {
+      font-size: clamp(16px, 2.2vw, 18px); color: var(--muted);
+      line-height: 1.7; max-width: 540px; margin: 0 auto;
+    }
+
+    /* ─── SHARED SECTION ─────────────────────────── */
+    .section { padding: 72px 24px; max-width: 900px; margin: 0 auto; }
+    .section-eyebrow {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--coral); margin-bottom: 12px;
+    }
+    .section h2 {
+      font-size: clamp(24px, 4vw, 36px); font-weight: 800;
+      letter-spacing: -0.02em; margin-bottom: 16px;
+    }
+    .section-lead {
+      font-size: 16px; color: var(--muted); line-height: 1.7;
+      max-width: 640px; margin-bottom: 44px;
+    }
+    .divider { border: none; border-top: 1px solid var(--border); margin: 0; }
+
+    /* ─── ORIGIN STORY ────────────────────────────── */
+    .origin-body {
+      display: grid; grid-template-columns: 1fr 2fr; gap: 48px; align-items: start;
+    }
+    .origin-pull {
+      background: var(--dark); color: white; border-radius: 16px;
+      padding: 28px; font-size: 18px; font-weight: 700; line-height: 1.45;
+      letter-spacing: -0.02em; position: sticky; top: 76px;
+    }
+    .origin-pull span { color: #E07A5F; }
+    .origin-text p {
+      font-size: 15.5px; color: #374151; line-height: 1.8; margin-bottom: 20px;
+    }
+    .origin-text p:last-child { margin-bottom: 0; }
+    .origin-text strong { color: var(--dark); }
+
+    /* ─── VISION MISSION GOAL ────────────────────── */
+    .vmg-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+    .vmg-card {
+      background: white; border-radius: 16px; padding: 30px;
+      border: 1px solid var(--border);
+    }
+    .vmg-tag {
+      display: inline-block; font-size: 10px; font-weight: 700;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      padding: 3px 10px; border-radius: 50px; margin-bottom: 16px;
+    }
+    .vmg-card:nth-child(1) .vmg-tag { background: #FEF3C7; color: #92400E; }
+    .vmg-card:nth-child(2) .vmg-tag { background: #EDE9FE; color: #6D28D9; }
+    .vmg-card:nth-child(3) .vmg-tag { background: #ECFDF5; color: #065F46; }
+    .vmg-card h3 { font-size: 17px; font-weight: 800; margin-bottom: 12px; letter-spacing: -0.02em; }
+    .vmg-card p { font-size: 14px; color: var(--muted); line-height: 1.65; }
+
+    /* ─── BUILDING STEPS ──────────────────────────── */
+    .steps-grid { display: flex; flex-direction: column; gap: 0; }
+    .build-step {
+      display: grid; grid-template-columns: 48px 1fr;
+      gap: 20px; padding: 22px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .build-step:last-child { border-bottom: none; }
+    .step-num-circle {
+      width: 38px; height: 38px; border-radius: 50%;
+      background: var(--dark); color: white;
+      font-size: 13px; font-weight: 800;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; margin-top: 2px;
+    }
+    .step-content h4 { font-size: 15px; font-weight: 700; margin-bottom: 5px; }
+    .step-content p { font-size: 13.5px; color: var(--muted); line-height: 1.6; }
+    .step-tag {
+      display: inline-block; font-size: 10px; font-weight: 600;
+      padding: 2px 8px; border-radius: 50px;
+      background: #F3F4F6; color: #6B7280;
+      margin-bottom: 5px; letter-spacing: 0.04em;
+    }
+
+    /* ─── TRADEOFFS ───────────────────────────────── */
+    .tradeoff-grid { display: flex; flex-direction: column; gap: 14px; }
+    .tradeoff-card {
+      background: white; border-radius: 14px; padding: 22px 26px;
+      border: 1px solid var(--border);
+      display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; align-items: start;
+    }
+    .tradeoff-label { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #9CA3AF; margin-bottom: 6px; }
+    .tradeoff-val { font-size: 14px; font-weight: 600; color: var(--dark); }
+    .tradeoff-why { font-size: 13px; color: var(--muted); line-height: 1.55; }
+    .tradeoff-choice .tradeoff-val { color: var(--teal); }
+    .tradeoff-header { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #9CA3AF; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; padding: 0 26px 8px; }
+
+    /* ─── OPPORTUNITY ─────────────────────────────── */
+    .opp-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 36px; }
+    .opp-stat {
+      background: white; border-radius: 14px; padding: 24px;
+      border: 1px solid var(--border); text-align: center;
+    }
+    .opp-stat-n { font-size: 28px; font-weight: 800; color: var(--dark); letter-spacing: -0.02em; margin-bottom: 6px; }
+    .opp-stat-l { font-size: 12px; color: var(--muted); line-height: 1.4; }
+    .positioning {
+      background: white; border-radius: 16px; padding: 28px;
+      border: 1px solid var(--border); margin-bottom: 24px;
+    }
+    .positioning h3 { font-size: 15px; font-weight: 700; margin-bottom: 16px; }
+    .pos-row {
+      display: grid; grid-template-columns: 140px 1fr 80px;
+      gap: 12px; padding: 10px 0; border-bottom: 1px solid #F3F4F6;
+      align-items: center; font-size: 13px;
+    }
+    .pos-row:last-child { border-bottom: none; }
+    .pos-name { font-weight: 600; color: var(--dark); }
+    .pos-desc { color: var(--muted); }
+    .pos-fit { font-weight: 700; text-align: right; }
+    .pos-fit.good { color: #16A34A; }
+    .pos-fit.bad  { color: #DC2626; }
+    .pos-fit.us   { color: var(--coral); }
+    .future-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+    .future-card {
+      background: white; border-radius: 12px; padding: 20px;
+      border: 1px solid var(--border);
+    }
+    .future-card h4 { font-size: 13.5px; font-weight: 700; margin-bottom: 6px; }
+    .future-card p { font-size: 12.5px; color: var(--muted); line-height: 1.55; }
+
+    /* ─── FOOTER CTA ─────────────────────────────── */
+    .story-cta {
+      text-align: center; padding: 80px 24px;
+      background: var(--dark); color: white; margin-top: 0;
+    }
+    .story-cta h2 { font-size: clamp(26px, 4vw, 38px); font-weight: 800; margin-bottom: 14px; letter-spacing: -0.02em; }
+    .story-cta p { font-size: 16px; opacity: 0.65; margin-bottom: 32px; line-height: 1.6; max-width: 480px; margin-left: auto; margin-right: auto; }
+    .cta-group { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .btn-light {
+      padding: 13px 28px; border-radius: 50px;
+      background: white; color: var(--dark);
+      font-size: 14px; font-weight: 700; text-decoration: none;
+      transition: all 0.15s;
+    }
+    .btn-light:hover { background: #F3F4F6; transform: translateY(-1px); }
+    .btn-ghost {
+      padding: 13px 28px; border-radius: 50px;
+      background: transparent; color: rgba(255,255,255,0.8);
+      font-size: 14px; font-weight: 600; text-decoration: none;
+      border: 1px solid rgba(255,255,255,0.25); transition: all 0.15s;
+    }
+    .btn-ghost:hover { background: rgba(255,255,255,0.1); color: white; }
+
+    /* ─── FOOTER ─────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border); padding: 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 12px; font-size: 12px; color: #9CA3AF;
+      max-width: 1000px; margin: 0 auto;
+    }
+    .footer-built { display: inline-flex; align-items: center; gap: 6px; background: white; border: 1px solid var(--border); border-radius: 50px; padding: 4px 12px; font-size: 11px; }
+
+    @media (max-width: 640px) {
+      .origin-body { grid-template-columns: 1fr; }
+      .origin-pull { position: static; }
+      .tradeoff-card { grid-template-columns: 1fr; gap: 10px; }
+      .tradeoff-header { display: none; }
+      .pos-row { grid-template-columns: 1fr 1fr; }
+      .pos-desc { display: none; }
+      .nav-links { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="./index.html" class="nav-logo">🧠 Second Brain</a>
+  <div class="nav-links">
+    <a href="./index.html" class="nav-link">Home</a>
+    <a href="./story.html" class="nav-link active">Story</a>
+    <a href="./second-brain.html?demo=true" class="nav-link">Demo</a>
+  </div>
+  <a href="./second-brain.html" class="nav-cta">Create your board →</a>
+</nav>
+
+<!-- ─── HERO ──────────────────────────────────────── -->
+<div class="story-hero">
+  <div class="eyebrow">Product Story</div>
+  <h1>Built by a PM,<br>powered by <span>AI</span></h1>
+  <p>The vision, the decisions, the tradeoffs, and the opportunity behind Second Brain — told honestly, from idea to live product.</p>
+</div>
+
+<hr class="divider">
+
+<!-- ─── ORIGIN ─────────────────────────────────────── -->
+<section class="section">
+  <div class="section-eyebrow">01 — Origin</div>
+  <h2>How it came into existence</h2>
+  <p class="section-lead">Every product starts with a problem that's too personal to ignore.</p>
+  <div class="origin-body">
+    <div class="origin-pull">
+      "One person was<br>carrying the mental<br>load. The other<br>didn't even know<br>there <span>was</span> a load."
+    </div>
+    <div class="origin-text">
+      <p>It started with a Sunday evening conversation — the kind that couples have when one person has been mentally tracking fifteen things all week and the other doesn't even know there's a list. <strong>"Did you remember to call the landlord?" "I thought you were doing that." "No, I told you in the car."</strong></p>
+      <p>Tasks were scattered across WhatsApp threads, Apple Reminders, and two heads that weren't always in sync. Ideas would come up at dinner and be forgotten by morning. Worries got carried silently. The mental load was split unevenly — not out of carelessness, but out of a lack of shared infrastructure.</p>
+      <p>The tools available were either too simple (WhatsApp) or too complex (Notion, Jira). Nobody wants to set up a project management workflow for "did we order coffee pods?"</p>
+      <p>As a product manager, I knew exactly what I wanted: something that <strong>felt like texting but organised everything automatically</strong>. A shared brain for the household — always in sync, always visible, zero friction to add things.</p>
+      <p>Instead of waiting for a team to build it, I opened Claude AI and started describing the product I wished existed. Six weeks later, Second Brain was live and being used daily.</p>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ─── VISION MISSION GOAL ────────────────────────── -->
+<section class="section">
+  <div class="section-eyebrow">02 — Foundation</div>
+  <h2>Vision, mission &amp; goal</h2>
+  <p class="section-lead">The north star, the daily purpose, and the concrete outcome we're working toward.</p>
+  <div class="vmg-grid">
+    <div class="vmg-card">
+      <div class="vmg-tag">Vision</div>
+      <h3>A world where no household task slips through the cracks</h3>
+      <p>And where no one person carries the mental load alone. Every home runs with the clarity and coordination of the best product teams — because the tools they use are just as good.</p>
+    </div>
+    <div class="vmg-card">
+      <div class="vmg-tag">Mission</div>
+      <h3>Give every household a shared brain</h3>
+      <p>One place where everything important is captured effortlessly, organised automatically by AI, and visible to everyone who needs to see it — in real time, on any device.</p>
+    </div>
+    <div class="vmg-card">
+      <div class="vmg-tag">Goal</div>
+      <h3>Replace scattered group chats with one board</h3>
+      <p>Help couples, families, and flatmates go from chaos across five apps to one shared space that requires zero effort to maintain and feels as natural as sending a message.</p>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ─── BUILDING STEPS ──────────────────────────────── -->
+<section class="section">
+  <div class="section-eyebrow">03 — Process</div>
+  <h2>How it was built</h2>
+  <p class="section-lead">Every feature was a product decision first, a technical conversation second. Here's the full journey — in order.</p>
+  <div class="steps-grid">
+
+    <div class="build-step">
+      <div class="step-num-circle">1</div>
+      <div class="step-content">
+        <div class="step-tag">Discovery</div>
+        <h4>Defined the problem clearly</h4>
+        <p>Mapped out exactly what was broken: tasks lost in WhatsApp, no shared visibility, unequal mental load, no easy capture mechanism. Wrote a one-page problem statement before touching any technology.</p>
+      </div>
+    </div>
+
+    <div class="build-step">
+      <div class="step-num-circle">2</div>
+      <div class="step-content">
+        <div class="step-tag">Research</div>
+        <h4>Audited existing tools and identified the gap</h4>
+        <p>Todoist — too personal. Notion — too complex. Alexa — voice only, no board. WhatsApp — no organisation. The gap was clear: nobody had built a shared kanban that felt as easy as texting.</p>
+      </div>
+    </div>
+
+    <div class="build-step">
+      <div class="step-num-circle">3</div>
+      <div class="step-content">
+        <div class="step-tag">Tech Stack</div>
+        <h4>Chose the simplest stack that could do the job</h4>
+        <p>Single HTML file (no build tools, easy to host), Firebase Realtime Database (real-time sync out of the box), Firebase Auth (Google Sign-In in three lines), GitHub Pages (free, auto-deploys on push).</p>
+      </div>
+    </div>
+
+    <div class="build-step">
+      <div class="step-num-circle">4</div>
+      <div class="step-content">
+        <div class="step-tag">MVP</div>
+        <h4>Built the kanban board with a chat-based input</h4>
+        <p>No forms. No dropdowns. Just a text box where you type anything naturally and the board fills up. Seven columns — Tasks, Worries, Ideas, Purchases, Trips, Life Admin, Other.</p>
+      </div>
+    </div>
+
+    <div class="build-step">
+      <div class="step-num-circle">5</div>
+      <div class="step-content">
+        <div class="step-tag">Auth</div>
+        <h4>Added Google Sign-In and multi-household architecture</h4>
+        <p>Any Google account can sign in. Each household gets a private board with a 6-letter invite code. Firebase security rules ensure complete data isolation between households.</p>
+      </div>
+    </div>
+
+    <div class="build-step">
+      <div class="step-num-circle">6</div>
+      <div class="step-content">
+        <div class="step-tag">AI / NLP</div>
+        <h4>Built score-based NLP categorisation</h4>
+        <p>Instead of relying on a single regex match, the app scores each input against keyword arrays for every category and picks the highest scorer. Handles ambiguous inputs by asking the user to choose. No API cost, works offline.</p>
+      </div>
+    </div>
+
+    <div class="build-step">
+      <div class="step-num-circle">7</div>
+      <div class="step-content">
+        <div class="step-tag">Mobile UX</div>
+        <h4>Redesigned the layout for phones</h4>
+        <p>Desktop shows all columns side-by-side. Mobile switches to a tab-based layout where one column fills the screen at a time. Action buttons (complete, delete, reassign) are always visible on mobile — no hover required.</p>
+      </div>
+    </div>
+
+    <div class="build-step">
+      <div class="step-num-circle">8</div>
+      <div class="step-content">
+        <div class="step-tag">Card Features</div>
+        <h4>Added due dates, notes, and voice input</h4>
+        <p>Click any card to open a detail view: set a due date (overdue cards turn red), add free-form notes or links. Tap 🎤 in the chat to speak instead of type — Web Speech API transcribes and auto-sends.</p>
+      </div>
+    </div>
+
+    <div class="build-step">
+      <div class="step-num-circle">9</div>
+      <div class="step-content">
+        <div class="step-tag">Sharing</div>
+        <h4>Built the invite system with email and direct links</h4>
+        <p>Invite modal shows a 6-letter code plus a shareable URL (?code=XXXXXX) that pre-fills the join form. Email invite opens the sender's email app with everything pre-written — recipient just clicks the link.</p>
+      </div>
+    </div>
+
+    <div class="build-step">
+      <div class="step-num-circle">10</div>
+      <div class="step-content">
+        <div class="step-tag">Analytics</div>
+        <h4>Added a founder dashboard and usage tracking</h4>
+        <p>15 events tracked silently (entry added, voice used, card detail opened, invite sent, etc.). Founder-only dashboard shows total users, active users (7d/today), feature usage bar charts, signup trends, and a full user table.</p>
+      </div>
+    </div>
+
+    <div class="build-step">
+      <div class="step-num-circle">11</div>
+      <div class="step-content">
+        <div class="step-tag">Distribution</div>
+        <h4>Built a landing page, demo mode, and this story page</h4>
+        <p>Landing page with live stats (boards created, items captured, members joined) pulled from Firebase. Demo mode lets anyone try a pre-populated board with no sign-in. This page tells the PM story behind the product.</p>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ─── TRADEOFFS ───────────────────────────────────── -->
+<section class="section">
+  <div class="section-eyebrow">04 — Decisions</div>
+  <h2>The tradeoffs</h2>
+  <p class="section-lead">Every product decision is a tradeoff. Here's what was chosen and why.</p>
+  <div class="tradeoff-header">
+    <span>Decision</span>
+    <span>Choice made</span>
+    <span>Why</span>
+  </div>
+  <div class="tradeoff-grid">
+
+    <div class="tradeoff-card">
+      <div>
+        <div class="tradeoff-label">Decision</div>
+        <div class="tradeoff-val">Single HTML file vs React / Next.js</div>
+      </div>
+      <div class="tradeoff-choice">
+        <div class="tradeoff-label">Chose</div>
+        <div class="tradeoff-val">Single HTML file</div>
+      </div>
+      <div>
+        <div class="tradeoff-label">Why</div>
+        <div class="tradeoff-why">Zero build tooling. No dependencies to break. Anyone can clone, open, and run it. Hosting is one git push. Speed of iteration was more valuable than framework conventions at this stage.</div>
+      </div>
+    </div>
+
+    <div class="tradeoff-card">
+      <div>
+        <div class="tradeoff-label">Decision</div>
+        <div class="tradeoff-val">Firebase vs custom backend</div>
+      </div>
+      <div class="tradeoff-choice">
+        <div class="tradeoff-label">Chose</div>
+        <div class="tradeoff-val">Firebase</div>
+      </div>
+      <div>
+        <div class="tradeoff-label">Why</div>
+        <div class="tradeoff-why">Real-time sync, auth, and database in three lines of config. No server to manage, no ops burden. The free tier handles thousands of users. Custom backend would have cost weeks and added zero user value.</div>
+      </div>
+    </div>
+
+    <div class="tradeoff-card">
+      <div>
+        <div class="tradeoff-label">Decision</div>
+        <div class="tradeoff-val">Claude API for NLP vs keyword matching</div>
+      </div>
+      <div class="tradeoff-choice">
+        <div class="tradeoff-label">Chose</div>
+        <div class="tradeoff-val">Keywords (for now)</div>
+      </div>
+      <div>
+        <div class="tradeoff-label">Why</div>
+        <div class="tradeoff-why">No API cost, no proxy server, works offline. Score-based keyword matching handles 90%+ of real inputs accurately. Claude API integration is the planned V2 — deferred because the current approach already delights users.</div>
+      </div>
+    </div>
+
+    <div class="tradeoff-card">
+      <div>
+        <div class="tradeoff-label">Decision</div>
+        <div class="tradeoff-val">Private tool vs open product</div>
+      </div>
+      <div class="tradeoff-choice">
+        <div class="tradeoff-label">Chose</div>
+        <div class="tradeoff-val">Open product</div>
+      </div>
+      <div>
+        <div class="tradeoff-label">Why</div>
+        <div class="tradeoff-why">Invite codes mean each household is completely isolated — opening it up costs nothing in security. But it multiplies potential users, enables a real demo, and turns this into a genuine PM portfolio piece with real traction.</div>
+      </div>
+    </div>
+
+    <div class="tradeoff-card">
+      <div>
+        <div class="tradeoff-label">Decision</div>
+        <div class="tradeoff-val">Thin MVP vs feature-rich launch</div>
+      </div>
+      <div class="tradeoff-choice">
+        <div class="tradeoff-label">Chose</div>
+        <div class="tradeoff-val">Feature-rich</div>
+      </div>
+      <div>
+        <div class="tradeoff-label">Why</div>
+        <div class="tradeoff-why">A thin slice wouldn't demonstrate product thinking. The goal is to show what AI-enabled PM execution looks like at its best — shipping real features (voice, analytics, invite flows, due dates) that real users actually need.</div>
+      </div>
+    </div>
+
+    <div class="tradeoff-card">
+      <div>
+        <div class="tradeoff-label">Decision</div>
+        <div class="tradeoff-val">category = flag vs moving cards on complete</div>
+      </div>
+      <div class="tradeoff-choice">
+        <div class="tradeoff-label">Chose</div>
+        <div class="tradeoff-val">completed: true flag</div>
+      </div>
+      <div>
+        <div class="tradeoff-label">Why</div>
+        <div class="tradeoff-why">Preserving the original category means the digest and analytics still know what type of thing was completed. If you mark a Task done, it still counts as a Task in your weekly summary — not lost to a generic "Done" bucket.</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ─── OPPORTUNITY ─────────────────────────────────── -->
+<section class="section">
+  <div class="section-eyebrow">05 — Market</div>
+  <h2>The opportunity</h2>
+  <p class="section-lead">The household management category is large, underserved, and ripe for AI disruption.</p>
+
+  <div class="opp-grid">
+    <div class="opp-stat">
+      <div class="opp-stat-n">130M+</div>
+      <div class="opp-stat-l">Households in the US alone</div>
+    </div>
+    <div class="opp-stat">
+      <div class="opp-stat-n">$4.5B</div>
+      <div class="opp-stat-l">Household management software market</div>
+    </div>
+    <div class="opp-stat">
+      <div class="opp-stat-n">0</div>
+      <div class="opp-stat-l">Dominant shared household AI products</div>
+    </div>
+    <div class="opp-stat">
+      <div class="opp-stat-n">73%</div>
+      <div class="opp-stat-l">Of couples report unequal mental load distribution*</div>
+    </div>
+  </div>
+
+  <div class="positioning">
+    <h3>Competitive positioning</h3>
+    <div class="pos-row" style="border-bottom:1px solid #E5E7EB;padding-bottom:8px;margin-bottom:4px;">
+      <span class="pos-name" style="color:#9CA3AF;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;">Product</span>
+      <span class="pos-desc" style="color:#9CA3AF;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;">Limitation</span>
+      <span class="pos-fit" style="color:#9CA3AF;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;">Fit</span>
+    </div>
+    <div class="pos-row">
+      <span class="pos-name">Todoist</span>
+      <span class="pos-desc">Personal, not built for real-time sharing with a household</span>
+      <span class="pos-fit bad">Partial</span>
+    </div>
+    <div class="pos-row">
+      <span class="pos-name">Notion</span>
+      <span class="pos-desc">Too complex and manual — no AI capture, high friction</span>
+      <span class="pos-fit bad">Poor</span>
+    </div>
+    <div class="pos-row">
+      <span class="pos-name">Alexa / Siri</span>
+      <span class="pos-desc">Voice only, no visual board, no shared household view</span>
+      <span class="pos-fit bad">Poor</span>
+    </div>
+    <div class="pos-row">
+      <span class="pos-name">WhatsApp</span>
+      <span class="pos-desc">No organisation, no categorisation, tasks get buried</span>
+      <span class="pos-fit bad">Poor</span>
+    </div>
+    <div class="pos-row" style="background:#FFF8F6;margin:-0px -26px;padding:10px 26px;border-radius:0 0 14px 14px;">
+      <span class="pos-name" style="color:var(--coral);">Second Brain ✦</span>
+      <span class="pos-desc">As simple as texting, as organised as a kanban, AI-powered</span>
+      <span class="pos-fit us">Built for this</span>
+    </div>
+  </div>
+
+  <div class="future-grid">
+    <div class="future-card">
+      <h4>🏠 Couples &amp; families</h4>
+      <p>The core market. Shared household tasks, ideas, and life admin — today.</p>
+    </div>
+    <div class="future-card">
+      <h4>🏢 Property managers</h4>
+      <p>Track tenant requests, maintenance tasks, and lease admin across multiple properties.</p>
+    </div>
+    <div class="future-card">
+      <h4>👥 Flatmates</h4>
+      <p>Shared bills, chores, grocery lists, and house rules — without the WhatsApp chaos.</p>
+    </div>
+    <div class="future-card">
+      <h4>👴 Elder care families</h4>
+      <p>Coordinate care tasks, medical appointments, and responsibilities across family members.</p>
+    </div>
+  </div>
+  <p style="font-size:11px;color:#9CA3AF;margin-top:16px;">* Illustrative figure based on published household mental load research.</p>
+</section>
+
+<!-- ─── FOOTER CTA ───────────────────────────────────── -->
+<section class="story-cta">
+  <h2>See it for yourself</h2>
+  <p>Try the demo — no sign-in needed. Or create your own household board in 60 seconds.</p>
+  <div class="cta-group">
+    <a href="./second-brain.html" class="btn-light">Create your board →</a>
+    <a href="./second-brain.html?demo=true" class="btn-ghost">👀 Try demo</a>
+    <a href="https://github.com/margihdesai/Second-Brain" class="btn-ghost">GitHub →</a>
+  </div>
+</section>
+
+<footer>
+  <div>🧠 Second Brain — Built by Margi Desai</div>
+  <div class="footer-built">🤖 Built with Claude AI</div>
+</footer>
+
+</body>
+</html>

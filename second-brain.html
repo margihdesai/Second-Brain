@@ -2057,7 +2057,7 @@ function maybeCloseDashboard(ev) { if (ev.target===document.getElementById('dash
 if (demoMode) {
   partner   = 'Margi';
   household = {
-    id: 'demo', name: 'Margi & Samarth', inviteCode: 'DEMO01',
+    id: 'demo', name: 'Demo Board', inviteCode: 'DEMO01',
     members: {
       u1: { displayName: 'Margi',   email: 'margi@demo.com',   color: '#E07A5F' },
       u2: { displayName: 'Samarth', email: 'samarth@demo.com', color: '#3D8B8F' },
@@ -2065,7 +2065,7 @@ if (demoMode) {
   };
   entries = [...DEMO_ENTRIES];
   document.getElementById('demo-banner').style.display  = 'flex';
-  document.getElementById('board-name').textContent     = 'Margi & Samarth';
+  document.getElementById('board-name').textContent     = 'Demo Board';
   document.getElementById('invite-btn').style.display   = 'none';
   renderBoard();
   // Greet after a short delay so the board renders first

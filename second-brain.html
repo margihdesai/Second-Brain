@@ -1416,6 +1416,10 @@ function openChatFor(cat) {
 }
 
 function greet() {
+  if (demoMode) {
+    addBot("👋 Welcome to the demo!\n\nThis is a sample household board. Try typing anything — I'll sort it into the right column. Click any card to add notes or a due date.\n\nReady to make your own? Hit \"Create your own board →\" above.");
+    return;
+  }
   const lines = [
     `Hey ${partner}! 👋 What's on your mind? Just tell me — I'll sort it.`,
     `Hi ${partner}! Dump anything here and I'll organise it 🧠`,
@@ -2068,11 +2072,8 @@ if (demoMode) {
   document.getElementById('board-name').textContent     = 'Demo Board';
   document.getElementById('invite-btn').style.display   = 'none';
   renderBoard();
-  // Greet after a short delay so the board renders first
-  setTimeout(() => {
-    toggleChat();
-    setTimeout(() => addBot("👋 Welcome to the demo! This is a sample household board.\n\nTry typing anything — I'll sort it. Or click a card to see details.\n\nReady to create your own? Hit \"Create your own board →\" above."), 400);
-  }, 800);
+  // Open chat after board renders
+  setTimeout(() => toggleChat(), 800);
 }
 
 </script>

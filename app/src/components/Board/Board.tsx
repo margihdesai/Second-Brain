@@ -46,7 +46,16 @@ export default function Board({ entries, partner, isAdmin, getMemberColor, onAck
   const [activeTab, setActiveTab] = useState('task');
   const [quickText, setQuickText] = useState('');
   const [addedCat, setAddedCat]   = useState<string | null>(null);
+  const [openCats, setOpenCats]   = useState<Set<string>>(new Set(['task', 'idea', 'purchase', 'worry', 'trip', 'life-admin', 'other', 'completed']));
   const isMobile = window.innerWidth <= 640;
+
+  function toggleCat(id: string) {
+    setOpenCats(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
 
   const catLabels: Record<string, string> = {
     task:'Tasks', worry:'Worries', idea:'Ideas', purchase:'Purchases',
@@ -86,6 +95,9 @@ export default function Board({ entries, partner, isAdmin, getMemberColor, onAck
     completed:  { bg:'#F0FDF4', color:'#166534' },
   };
 
+  // suppress unused warning
+  void activeTab; void setActiveTab;
+
   return (
     <>
       {/* Quick add bar */}
@@ -116,33 +128,22 @@ export default function Board({ entries, partner, isAdmin, getMemberColor, onAck
         )}
       </div>
 
-      {/* Mobile tab bar */}
-      <div className="tab-bar">
-        {CATS.map(cat => {
-          const count = getCards(cat).length;
-          return (
-            <button key={cat.id} className={`tab-btn ${activeTab === cat.id ? 'active' : ''}`} onClick={() => setActiveTab(cat.id)}>
-              {cat.e} {count}
-            </button>
-          );
-        })}
-      </div>
-
       <div className="board">
         {CATS.map(cat => {
-          const cards    = getCards(cat);
-          const tint     = colTints[cat.id] || colTints.other;
-          const isActive = !isMobile || activeTab === cat.id;
+          const cards  = getCards(cat);
+          const tint   = colTints[cat.id] || colTints.other;
+          const isOpen = openCats.has(cat.id);
 
           return (
-            <div key={cat.id} className={`col ${isActive ? 'mobile-active' : ''}`} data-cat={cat.id}>
-              <div className="col-head" style={{ background: tint.bg, color: tint.color }}>
+            <div key={cat.id} className={`col ${isOpen ? 'open' : ''}`} data-cat={cat.id}>
+              <div className="col-head" style={{ background: tint.bg, color: tint.color }} onClick={() => toggleCat(cat.id)}>
                 <span className="col-emoji">{cat.e}</span>
                 <span className="col-label">{cat.l}</span>
                 <span className="col-count">{cards.length}</span>
                 {cat.id !== 'completed' && (
-                  <button className="col-plus" onClick={() => onOpenChatFor(cat.id)}>+</button>
+                  <button className="col-plus" onClick={e => { e.stopPropagation(); onOpenChatFor(cat.id); }}>+</button>
                 )}
+                <span className="col-chevron">▼</span>
               </div>
               <div
                 className={`col-body ${overCat === cat.id ? 'over' : ''}`}
@@ -157,7 +158,6 @@ export default function Board({ entries, partner, isAdmin, getMemberColor, onAck
               >
                 {cards.length === 0
                   ? <div className="col-empty">
-                      <div style={{ fontSize:24, marginBottom:6 }}>{cat.e}</div>
                       <div style={{ fontWeight:600, color:'#94A3B8', marginBottom:4 }}>{EMPTY_HINTS[cat.id]?.title}</div>
                       <div style={{ fontSize:10.5, color:'#CBD5E1' }}>{EMPTY_HINTS[cat.id]?.hint}</div>
                     </div>

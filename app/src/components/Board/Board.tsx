@@ -46,16 +46,8 @@ export default function Board({ entries, partner, isAdmin, getMemberColor, onAck
   const [activeTab, setActiveTab] = useState('task');
   const [quickText, setQuickText] = useState('');
   const [addedCat, setAddedCat]   = useState<string | null>(null);
-  const [openCats, setOpenCats]   = useState<Set<string>>(new Set(['task', 'idea', 'purchase', 'worry', 'trip', 'life-admin', 'other', 'completed']));
   const isMobile = window.innerWidth <= 640;
-
-  function toggleCat(id: string) {
-    setOpenCats(prev => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
-  }
+  void isMobile;
 
   const catLabels: Record<string, string> = {
     task:'Tasks', worry:'Worries', idea:'Ideas', purchase:'Purchases',
@@ -95,7 +87,6 @@ export default function Board({ entries, partner, isAdmin, getMemberColor, onAck
     completed:  { bg:'#F0FDF4', color:'#166534' },
   };
 
-  // suppress unused warning
   void activeTab; void setActiveTab;
 
   return (
@@ -130,20 +121,18 @@ export default function Board({ entries, partner, isAdmin, getMemberColor, onAck
 
       <div className="board">
         {CATS.map(cat => {
-          const cards  = getCards(cat);
-          const tint   = colTints[cat.id] || colTints.other;
-          const isOpen = openCats.has(cat.id);
+          const cards = getCards(cat);
+          const tint  = colTints[cat.id] || colTints.other;
 
           return (
-            <div key={cat.id} className={`col ${isOpen ? 'open' : ''}`} data-cat={cat.id}>
-              <div className="col-head" style={{ background: tint.bg, color: tint.color }} onClick={() => toggleCat(cat.id)}>
+            <div key={cat.id} className="col" data-cat={cat.id}>
+              <div className="col-head" style={{ background: tint.bg, color: tint.color }}>
                 <span className="col-emoji">{cat.e}</span>
                 <span className="col-label">{cat.l}</span>
                 <span className="col-count">{cards.length}</span>
                 {cat.id !== 'completed' && (
-                  <button className="col-plus" onClick={e => { e.stopPropagation(); onOpenChatFor(cat.id); }}>+</button>
+                  <button className="col-plus" onClick={() => onOpenChatFor(cat.id)}>+</button>
                 )}
-                <span className="col-chevron">▼</span>
               </div>
               <div
                 className={`col-body ${overCat === cat.id ? 'over' : ''}`}

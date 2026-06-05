@@ -323,6 +323,7 @@ export default function App() {
       <Board
         entries={entries}
         partner={partner}
+        isAdmin={myRole === 'admin'}
         getMemberColor={getMemberColor}
         onAck={ackEntry}
         onComplete={completeEntry}

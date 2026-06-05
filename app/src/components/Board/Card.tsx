@@ -4,6 +4,7 @@ interface Props {
   entry:        Entry;
   partner:      string;
   color:        string;
+  isAdmin:      boolean;
   onAck:        (id: string) => void;
   onComplete:   (id: string) => void;
   onDelete:     (id: string) => void;
@@ -42,8 +43,9 @@ function isOverdue(e: Entry) {
   return new Date(e.dueDate) < today;
 }
 
-export default function Card({ entry: e, partner, color, onAck, onComplete, onDelete, onReassign, onOpenDetail, onDragStart, onDragEnd }: Props) {
-  const isOwn = e.author === partner;
+export default function Card({ entry: e, partner, color, isAdmin, onAck, onComplete, onDelete, onReassign, onOpenDetail, onDragStart, onDragEnd }: Props) {
+  const isOwn      = e.author === partner;
+  const canDelete  = isOwn || isAdmin;
   const done  = e.completed;
   const over  = isOverdue(e);
   const due   = e.dueDate ? formatDue(e.dueDate) : null;
@@ -88,8 +90,8 @@ export default function Card({ entry: e, partner, color, onAck, onComplete, onDe
             ? <button className="card-btn ack" title={e.acked ? 'Un-acknowledge' : 'Acknowledge'} onClick={() => onAck(e.id)}>{e.acked ? '✓' : '👋'}</button>
             : e.acked ? <span style={{ fontSize:9, color:'#6EE7B7', padding:'2px 4px' }}>seen</span> : null
           }
-          {/* Delete */}
-          <button className="card-btn del" title="Delete" onClick={() => onDelete(e.id)}>×</button>
+          {/* Delete — own entries or admin only */}
+          {canDelete && <button className="card-btn del" title="Delete" onClick={() => onDelete(e.id)}>×</button>}
         </div>
       </div>
     </div>

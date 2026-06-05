@@ -33,15 +33,19 @@ jobs:
         run: npm run build
         working-directory: app
 
-      - name: Copy static files alongside React app
+      - name: Assemble deployment directory
         run: |
-          cp index.html app/dist/
-          cp second-brain.html app/dist/ 2>/dev/null || true
-          cp story.html app/dist/ 2>/dev/null || true
+          mkdir -p deploy/app
+          # Static files at the root (landing page, old app, story)
+          cp index.html deploy/
+          cp second-brain.html deploy/ 2>/dev/null || true
+          cp story.html deploy/ 2>/dev/null || true
+          # React app goes into /app subdirectory
+          cp -r app/dist/. deploy/app/
 
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: app/dist
+          path: deploy
 
   deploy:
     needs: build

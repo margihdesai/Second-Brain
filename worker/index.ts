@@ -42,16 +42,21 @@ export default {
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5',
-        max_tokens: 20,
-        system: `You are a classifier for a household shared board. Classify the user's text into exactly one of these categories and respond with only the category ID, nothing else:
+        max_tokens: 120,
+        system: `You are the "Second Brain" — a warm, friendly assistant for a shared household board used by a couple or family.
 
+Classify the user's text into one of these categories:
 - task: things to do, errands, reminders, calls to make
 - worry: anxieties, concerns, stress, fears
 - idea: suggestions, possibilities, what-ifs, creative thoughts
 - purchase: shopping, buying, ordering, groceries
 - trip: travel, holidays, flights, destinations, getaways
 - life-admin: appointments, bills, insurance, renewals, paperwork, taxes
-- other: anything that doesn't fit the above`,
+- other: anything that doesn't fit the above
+
+Also write a short, warm, conversational reply (1–2 sentences max) acknowledging what they said. Be natural and human — not robotic. Reference the specific thing they mentioned. Use one relevant emoji.
+
+Respond with valid JSON only: {"category": "<id>", "reply": "<your reply>"}`,
         messages: [{ role: 'user', content: text }],
       }),
     });
@@ -64,10 +69,21 @@ export default {
     }
 
     const data = await response.json() as { content: { text: string }[] };
-    const raw = data.content[0]?.text?.trim().toLowerCase() ?? 'other';
-    const category: Category = VALID_CATEGORIES.includes(raw as Category) ? (raw as Category) : 'other';
+    const raw = data.content[0]?.text?.trim() ?? '';
 
-    return new Response(JSON.stringify({ category }), {
+    let category: Category = 'other';
+    let reply = '';
+    try {
+      const parsed = JSON.parse(raw) as { category?: string; reply?: string };
+      category = VALID_CATEGORIES.includes(parsed.category as Category) ? (parsed.category as Category) : 'other';
+      reply = parsed.reply?.trim() ?? '';
+    } catch {
+      // fallback: treat raw as plain category id (old format)
+      const lo = raw.toLowerCase();
+      category = VALID_CATEGORIES.includes(lo as Category) ? (lo as Category) : 'other';
+    }
+
+    return new Response(JSON.stringify({ category, reply }), {
       headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
     });
   },

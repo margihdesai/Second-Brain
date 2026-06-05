@@ -84,7 +84,7 @@ export default function Board({ entries, partner, isAdmin, getMemberColor, onAck
     const text = quickText.trim();
     if (!text) return;
     setQuickText('');
-    const cat = await detectCatAI(text);
+    const { category: cat } = await detectCatAI(text);
     onAdd(text, cat);
     setAddedCat(cat);
     setTimeout(() => setAddedCat(null), 2000);

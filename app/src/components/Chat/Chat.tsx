@@ -67,6 +67,54 @@ export default function Chat({ partner, entries, hintCat, forceOpen, onAdd, onDe
     setTimeout(() => void processMsg(text), 320);
   }
 
+  function answerBoardQuery(lo: string): string | null {
+    const active = entries.filter(e => !e.completed);
+    const completed = entries.filter(e => e.completed);
+
+    // "how many X" / "count X" / "X count"
+    const catMatch = CATS_KEYS.find(c =>
+      lo.includes(c.id) || lo.includes(c.l.toLowerCase()) || lo.includes(c.l.toLowerCase().replace(/s$/, ''))
+    );
+
+    if (/\b(how many|count|number of)\b/.test(lo)) {
+      if (catMatch) {
+        const n = active.filter(e => e.category === catMatch.id).length;
+        return `You have ${n} ${catMatch.l.toLowerCase()} ${n === 1 ? 'item' : 'items'} on the board ${catMatch.e}.`;
+      }
+      const n = active.length;
+      return `There ${n === 1 ? 'is' : 'are'} ${n} active ${n === 1 ? 'item' : 'items'} on the board, plus ${completed.length} completed 🧠.`;
+    }
+
+    // "show my X" / "list my X" / "what are my X"
+    if (/\b(show|list|what are|what's|whats)\b.*(my|mine)\b/.test(lo) ||
+        /\bmy\b.*(task|worry|idea|purchase|trip|life.admin|item)\b/.test(lo)) {
+      const mine = active.filter(e => e.author === partner && (!catMatch || e.category === catMatch.id));
+      if (!mine.length) return `You haven't added any ${catMatch ? catMatch.l.toLowerCase() : 'items'} yet!`;
+      return `Your ${catMatch ? catMatch.l.toLowerCase() : 'items'} ${catMatch?.e ?? '📝'}:\n${mine.map(e => `• ${e.text}`).join('\n')}`;
+    }
+
+    // "show [name]'s" / "what did X add"
+    const nameMatch = lo.match(/\bshow\s+(\w+)'?s?\b|\bwhat did\s+(\w+)\b/);
+    if (nameMatch) {
+      const name = (nameMatch[1] || nameMatch[2]).toLowerCase();
+      const theirs = active.filter(e => e.author.toLowerCase().startsWith(name));
+      if (!theirs.length) return `Nothing from ${nameMatch[1] || nameMatch[2]} yet!`;
+      return `From ${theirs[0].author} 📝:\n${theirs.map(e => `• ${e.text}`).join('\n')}`;
+    }
+
+    // "summary" / "show everything" / "show all"
+    if (/\b(summary|summarize|show everything|show all|overview)\b/.test(lo)) {
+      const lines = CATS_KEYS.map(c => {
+        const n = active.filter(e => e.category === c.id).length;
+        return n > 0 ? `${c.e} ${c.l}: ${n}` : null;
+      }).filter(Boolean);
+      if (!lines.length) return "The board is empty — a clean slate! ✨";
+      return `Here's the board:\n${lines.join('\n')}\n(${completed.length} completed ☑️)`;
+    }
+
+    return null;
+  }
+
   async function processMsg(text: string) {
     const lo = text.toLowerCase();
     if (/^(hi|hey|hello|yo)\b/.test(lo)) { addBot("Hey! 👋 What's on your mind?"); return; }
@@ -86,8 +134,13 @@ export default function Chat({ partner, entries, hintCat, forceOpen, onAdd, onDe
       return;
     }
 
-    const cat = await detectCatAI(text);
-    onAdd(text, cat); addBot(rand(BOT[cat] || BOT.other));
+    // Answer questions about the board without adding an entry
+    const boardAnswer = answerBoardQuery(lo);
+    if (boardAnswer) { addBot(boardAnswer); return; }
+
+    const { category: cat, reply } = await detectCatAI(text);
+    onAdd(text, cat);
+    addBot(reply || rand(BOT[cat] || BOT.other));
   }
 
   function handleCatReply(reply: string) {

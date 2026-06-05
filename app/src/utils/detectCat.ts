@@ -19,24 +19,29 @@ export function detectCat(text: string): string {
 
 const WORKER_URL = import.meta.env.VITE_CATEGORISE_WORKER_URL as string | undefined;
 
+export interface AIResult {
+  category: string;
+  reply: string;
+}
+
 /**
- * AI-powered categorisation via Cloudflare Worker.
- * Falls back to keyword matching if the Worker URL isn't configured or the call fails.
+ * AI-powered categorisation + reply via Cloudflare Worker.
+ * Falls back to keyword matching (no reply) if the Worker is unavailable.
  */
-export async function detectCatAI(text: string): Promise<string> {
-  if (!WORKER_URL) return detectCat(text);
+export async function detectCatAI(text: string): Promise<AIResult> {
+  if (!WORKER_URL) return { category: detectCat(text), reply: '' };
 
   try {
     const res = await fetch(WORKER_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text }),
-      signal: AbortSignal.timeout(4000), // 4s max — don't block the UI
+      signal: AbortSignal.timeout(4000),
     });
-    if (!res.ok) return detectCat(text);
-    const { category } = await res.json() as { category: string };
-    return category || detectCat(text);
+    if (!res.ok) return { category: detectCat(text), reply: '' };
+    const { category, reply } = await res.json() as { category: string; reply?: string };
+    return { category: category || detectCat(text), reply: reply ?? '' };
   } catch {
-    return detectCat(text);
+    return { category: detectCat(text), reply: '' };
   }
 }

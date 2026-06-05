@@ -54,9 +54,8 @@ export default function Board({ entries, partner, isAdmin, getMemberColor, onAck
       initializedRef.current = true;
       setOpenCats(new Set(
         CATS.filter(cat => {
-          return cat.id === 'completed'
-            ? entries.some(e => e.completed)
-            : entries.some(e => e.category === cat.id && !e.completed);
+          if (cat.id === 'completed') return false;
+          return entries.some(e => e.category === cat.id && !e.completed);
         }).map(c => c.id)
       ));
     }

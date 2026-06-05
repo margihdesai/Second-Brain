@@ -39,6 +39,7 @@ export default function Chat({ partner, entries, hintCat, forceOpen, onAdd, onDe
   const [state, setState]         = useState<'ready' | 'await_cat'>('ready');
   const [pending, setPending]     = useState<string | null>(null);
   const [activeCat, setActiveCat] = useState<string | null>(hintCat);
+  const lastCatCtx                = useRef<string | null>(null); // last category discussed in a query
   const msgsEl                    = useRef<HTMLDivElement>(null);
 
   useEffect(() => { setActiveCat(hintCat); if (hintCat) setOpen(true); }, [hintCat]);
@@ -71,43 +72,57 @@ export default function Chat({ partner, entries, hintCat, forceOpen, onAdd, onDe
     const active = entries.filter(e => !e.completed);
     const completed = entries.filter(e => e.completed);
 
-    // "how many X" / "count X" / "X count"
     const catMatch = CATS_KEYS.find(c =>
       lo.includes(c.id) || lo.includes(c.l.toLowerCase()) || lo.includes(c.l.toLowerCase().replace(/s$/, ''))
     );
 
+    // Follow-up: "what is it?", "show me", "list them", "what are they?"
+    if (/\b(what is it|show me|list (it|them)|what are they|tell me more|which one)\b/.test(lo)) {
+      const ctx = lastCatCtx.current;
+      const cat = ctx ? CATS_KEYS.find(c => c.id === ctx) : null;
+      const items = active.filter(e => ctx ? e.category === ctx : true);
+      if (!cat || !items.length) return ctx ? `Nothing in ${cat?.l ?? ctx} right now!` : "Not sure what you mean — ask me about a specific category!";
+      return `${cat.e} ${cat.l}:\n${items.map(e => `• ${e.text}`).join('\n')}`;
+    }
+
+    // "how many X"
     if (/\b(how many|count|number of)\b/.test(lo)) {
       if (catMatch) {
         const n = active.filter(e => e.category === catMatch.id).length;
-        return `You have ${n} ${catMatch.l.toLowerCase()} ${n === 1 ? 'item' : 'items'} on the board ${catMatch.e}.`;
+        lastCatCtx.current = catMatch.id;
+        return `You have ${n} ${n === 1 ? catMatch.l.toLowerCase().replace(/s$/, '') : catMatch.l.toLowerCase()} on the board ${catMatch.e}.`;
       }
       const n = active.length;
+      lastCatCtx.current = null;
       return `There ${n === 1 ? 'is' : 'are'} ${n} active ${n === 1 ? 'item' : 'items'} on the board, plus ${completed.length} completed 🧠.`;
     }
 
-    // "show my X" / "list my X" / "what are my X"
+    // "show my X" / "list my X"
     if (/\b(show|list|what are|what's|whats)\b.*(my|mine)\b/.test(lo) ||
         /\bmy\b.*(task|worry|idea|purchase|trip|life.admin|item)\b/.test(lo)) {
       const mine = active.filter(e => e.author === partner && (!catMatch || e.category === catMatch.id));
+      if (catMatch) lastCatCtx.current = catMatch.id;
       if (!mine.length) return `You haven't added any ${catMatch ? catMatch.l.toLowerCase() : 'items'} yet!`;
       return `Your ${catMatch ? catMatch.l.toLowerCase() : 'items'} ${catMatch?.e ?? '📝'}:\n${mine.map(e => `• ${e.text}`).join('\n')}`;
     }
 
-    // "show [name]'s" / "what did X add"
+    // "show [name]'s"
     const nameMatch = lo.match(/\bshow\s+(\w+)'?s?\b|\bwhat did\s+(\w+)\b/);
     if (nameMatch) {
       const name = (nameMatch[1] || nameMatch[2]).toLowerCase();
       const theirs = active.filter(e => e.author.toLowerCase().startsWith(name));
+      lastCatCtx.current = null;
       if (!theirs.length) return `Nothing from ${nameMatch[1] || nameMatch[2]} yet!`;
       return `From ${theirs[0].author} 📝:\n${theirs.map(e => `• ${e.text}`).join('\n')}`;
     }
 
-    // "summary" / "show everything" / "show all"
+    // "summary" / "show everything"
     if (/\b(summary|summarize|show everything|show all|overview)\b/.test(lo)) {
       const lines = CATS_KEYS.map(c => {
         const n = active.filter(e => e.category === c.id).length;
         return n > 0 ? `${c.e} ${c.l}: ${n}` : null;
       }).filter(Boolean);
+      lastCatCtx.current = null;
       if (!lines.length) return "The board is empty — a clean slate! ✨";
       return `Here's the board:\n${lines.join('\n')}\n(${completed.length} completed ☑️)`;
     }

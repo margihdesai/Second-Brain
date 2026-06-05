@@ -29,23 +29,25 @@ const BOT: Record<string, string[]> = {
 interface Msg { role: 'bot' | 'user'; text: string; qrs?: { label: string; val: string }[]; }
 
 interface Props {
-  partner:   string;
-  entries:   Entry[];
-  hintCat:   string | null;
-  onAdd:     (text: string, cat: string) => void;
-  onDelete:  (id: string) => void;
+  partner:    string;
+  entries:    Entry[];
+  hintCat:    string | null;
+  forceOpen?: boolean;
+  onAdd:      (text: string, cat: string) => void;
+  onDelete:   (id: string) => void;
 }
 
-export default function Chat({ partner, entries, hintCat, onAdd, onDelete }: Props) {
-  const [open, setOpen]         = useState(false);
-  const [msgs, setMsgs]         = useState<Msg[]>([]);
-  const [input, setInput]       = useState('');
-  const [state, setState]       = useState<'ready' | 'await_cat'>('ready');
-  const [pending, setPending]   = useState<string | null>(null);
+export default function Chat({ partner, entries, hintCat, forceOpen, onAdd, onDelete }: Props) {
+  const [open, setOpen]           = useState(false);
+  const [msgs, setMsgs]           = useState<Msg[]>([]);
+  const [input, setInput]         = useState('');
+  const [state, setState]         = useState<'ready' | 'await_cat'>('ready');
+  const [pending, setPending]     = useState<string | null>(null);
   const [activeCat, setActiveCat] = useState<string | null>(hintCat);
-  const msgsEl                  = useRef<HTMLDivElement>(null);
+  const msgsEl                    = useRef<HTMLDivElement>(null);
 
-  useEffect(() => { setActiveCat(hintCat); }, [hintCat]);
+  useEffect(() => { setActiveCat(hintCat); if (hintCat) setOpen(true); }, [hintCat]);
+  useEffect(() => { if (forceOpen) setOpen(true); }, [forceOpen]);
   useEffect(() => { if (open && msgs.length === 0) greet(); }, [open]);
   useEffect(() => { if (msgsEl.current) msgsEl.current.scrollTop = msgsEl.current.scrollHeight; }, [msgs]);
 

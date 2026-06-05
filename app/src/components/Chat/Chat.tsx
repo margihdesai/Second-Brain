@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import type { Entry } from '../../types';
-import { detectCat } from '../../utils/detectCat';
+import { detectCat, detectCatAI } from '../../utils/detectCat';
 
 const CATS_KEYS = [
   { id:'task',       e:'✅', l:'Tasks',      keys:['need to','should','must','have to','remember to','todo','call','fix','schedule','book','remind','pick up','finish','complete','send','pay','submit'] },
@@ -64,10 +64,10 @@ export default function Chat({ partner, entries, hintCat, forceOpen, onAdd, onDe
     if (!text) return;
     addUser(text);
     setInput('');
-    setTimeout(() => processMsg(text), 320);
+    setTimeout(() => void processMsg(text), 320);
   }
 
-  function processMsg(text: string) {
+  async function processMsg(text: string) {
     const lo = text.toLowerCase();
     if (/^(hi|hey|hello|yo)\b/.test(lo)) { addBot("Hey! 👋 What's on your mind?"); return; }
     if (/\b(thank|thanks|thx)\b/.test(lo)) { addBot("Happy to help 🧠 Anything else?"); return; }
@@ -86,16 +86,7 @@ export default function Chat({ partner, entries, hintCat, forceOpen, onAdd, onDe
       return;
     }
 
-    const lo2   = text.toLowerCase();
-    const scored = CATS_KEYS.map(c => ({ c, score: c.keys.filter(k => lo2.includes(k)).length })).filter(x => x.score > 0).sort((a,b) => b.score - a.score);
-    if (scored.length >= 2 && scored[0].score === scored[1].score) {
-      setPending(text); setState('await_cat');
-      addBot(`I could file this as ${scored[0].c.e} ${scored[0].c.l.slice(0,-1)} or ${scored[1].c.e} ${scored[1].c.l.slice(0,-1)}. Which fits?`,
-        scored.slice(0,3).map(x => ({ label: x.c.e + ' ' + x.c.l.slice(0,-1), val: x.c.id })));
-      return;
-    }
-
-    const cat = scored[0]?.c.id || 'other';
+    const cat = await detectCatAI(text);
     onAdd(text, cat); addBot(rand(BOT[cat] || BOT.other));
   }
 

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import type { Entry, Category } from '../../types';
 import Card from './Card';
-import { detectCat } from '../../utils/detectCat';
+import { detectCat, detectCatAI } from '../../utils/detectCat';
 
 const CATS: Category[] = [
   { id:'task',       e:'✅', l:'Tasks' },
@@ -80,13 +80,13 @@ export default function Board({ entries, partner, isAdmin, getMemberColor, onAck
 
   const detectedCat = quickText.trim() ? detectCat(quickText) : null;
 
-  function submitQuick() {
+  async function submitQuick() {
     const text = quickText.trim();
     if (!text) return;
-    const cat = detectCat(text);
+    setQuickText('');
+    const cat = await detectCatAI(text);
     onAdd(text, cat);
     setAddedCat(cat);
-    setQuickText('');
     setTimeout(() => setAddedCat(null), 2000);
   }
 
@@ -120,7 +120,7 @@ export default function Board({ entries, partner, isAdmin, getMemberColor, onAck
             placeholder="Add anything — tasks, ideas, worries…"
             value={quickText}
             onChange={e => setQuickText(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') submitQuick(); }}
+            onKeyDown={e => { if (e.key === 'Enter') void submitQuick(); }}
           />
           {detectedCat && (
             <span style={{ fontSize:11, color:'#64748B', background:'#F1F5F9', borderRadius:6, padding:'2px 8px', whiteSpace:'nowrap' }}>
@@ -128,7 +128,7 @@ export default function Board({ entries, partner, isAdmin, getMemberColor, onAck
             </span>
           )}
           <button
-            onClick={submitQuick}
+            onClick={() => void submitQuick()}
             style={{ background:'#1E293B', color:'#fff', border:'none', borderRadius:8, padding:'6px 14px', fontSize:13, fontWeight:600, cursor:'pointer', opacity: quickText.trim() ? 1 : 0.4 }}
           >Add</button>
         </div>

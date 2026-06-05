@@ -13,6 +13,17 @@ const CATS: Category[] = [
   { id:'completed',  e:'☑️',  l:'Completed' },
 ];
 
+const EMPTY_HINTS: Record<string, { title: string; hint: string }> = {
+  task:       { title: 'No tasks yet',        hint: 'What needs to get done?' },
+  worry:      { title: 'Nothing on your mind', hint: 'Share what\'s bothering you' },
+  idea:       { title: 'No ideas yet',         hint: 'What have you been thinking about?' },
+  purchase:   { title: 'Nothing to buy',       hint: 'Add something to the list' },
+  trip:       { title: 'No trips planned',     hint: 'Where do you want to go?' },
+  'life-admin':{ title: 'All clear',           hint: 'Anything to file or renew?' },
+  other:      { title: 'Nothing here',         hint: 'Drop anything that doesn\'t fit elsewhere' },
+  completed:  { title: 'Nothing completed yet', hint: 'Mark a task done and it\'ll appear here' },
+};
+
 interface Props {
   entries:        Entry[];
   partner:        string;
@@ -91,7 +102,11 @@ export default function Board({ entries, partner, getMemberColor, onAck, onCompl
                 }}
               >
                 {cards.length === 0
-                  ? <div className="col-empty">No {cat.l.toLowerCase()} yet</div>
+                  ? <div className="col-empty">
+                      <div style={{ fontSize:24, marginBottom:6 }}>{cat.e}</div>
+                      <div style={{ fontWeight:600, color:'#94A3B8', marginBottom:4 }}>{EMPTY_HINTS[cat.id]?.title}</div>
+                      <div style={{ fontSize:10.5, color:'#CBD5E1' }}>{EMPTY_HINTS[cat.id]?.hint}</div>
+                    </div>
                   : cards.map(entry => (
                     <Card
                       key={entry.id}

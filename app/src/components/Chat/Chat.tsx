@@ -67,7 +67,7 @@ export default function Chat({ partner, entries, hintCat, onAdd, onDelete }: Pro
     if (!text) return;
     addUser(text);
     setInput('');
-    setTimeout(() => processMsg(text), 680);
+    setTimeout(() => processMsg(text), 320);
   }
 
   function processMsg(text: string) {
@@ -131,10 +131,15 @@ export default function Chat({ partner, entries, hintCat, onAdd, onDelete }: Pro
       <div className={`chat ${open ? 'on' : ''}`}>
         <div className="chat-hdr">
           <div className="chat-av">🧠</div>
-          <div>
+          <div style={{ flex:1 }}>
             <div className="chat-name">Second Brain</div>
             <div className="chat-hint">{activeCat ? `Adding to ${activeCat}` : "Tell me anything — I'll sort it"}</div>
           </div>
+          {entries.length > 0 && (
+            <div style={{ fontSize:10, color:'#9CA3AF', background:'#F3F4F6', padding:'2px 8px', borderRadius:50 }}>
+              {entries.length} items
+            </div>
+          )}
         </div>
 
         <div className="chat-msgs" ref={msgsEl}>

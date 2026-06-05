@@ -666,7 +666,7 @@
     <button class="ghost-btn" id="dashboard-btn" onclick="openDashboard()" style="display:none">🛠 Dashboard</button>
     <button class="ghost-btn insights-btn" onclick="openInsights()">📊 Insights</button>
     <button class="ghost-btn digest-btn" onclick="openDigest()">🗓 Weekly Digest</button>
-    <button class="ghost-btn" onclick="leaveOrDeleteBoard()" id="leave-btn" style="display:none;color:#DC2626;border-color:#FCA5A5;" title="Leave or delete this board">🗑</button>
+    <button class="ghost-btn" onclick="openBoardActions()" id="leave-btn" style="display:none;color:#DC2626;border-color:#FCA5A5;" title="Leave or delete this board">🗑</button>
     <button class="ghost-btn" onclick="signOut()" id="signout-btn" style="display:none">Sign out</button>
   </div>
 </header>
@@ -776,6 +776,17 @@
       <button class="modal-close" onclick="closeInsights()">×</button>
     </div>
     <div id="insights-body"></div>
+  </div>
+</div>
+
+<!-- ─── BOARD ACTIONS OVERLAY ────────────────────────────── -->
+<div class="overlay" id="board-actions-overlay" onclick="maybeCloseBoardActions(event)">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-head">
+      <span class="modal-title" id="board-actions-title">Board Actions</span>
+      <button class="modal-close" onclick="closeBoardActions()">×</button>
+    </div>
+    <div id="board-actions-body"></div>
   </div>
 </div>
 
@@ -951,7 +962,7 @@ async function doCreate() {
     const hid  = db.ref('households').push().key;
     await db.ref(`households/${hid}`).set({
       name: boardName, inviteCode: code, createdAt: new Date().toISOString(), createdBy: uid,
-      members: { [uid]: { displayName: myName, email: currentUser.email, color: MEMBER_COLORS[0], joinedAt: new Date().toISOString() } }
+      members: { [uid]: { displayName: myName, email: currentUser.email, color: MEMBER_COLORS[0], joinedAt: new Date().toISOString(), role: 'admin' } }
     });
     await db.ref(`userHouseholds/${uid}`).set(hid);
     await db.ref(`inviteCodes/${code}`).set(hid);
@@ -974,7 +985,7 @@ async function doJoin() {
     const colorSnap = await db.ref(`households/${hid}/memberCount`).once('value');
     const colorIdx = Math.min((colorSnap.val() || 1), MEMBER_COLORS.length - 1);
     await db.ref(`households/${hid}/members/${uid}`).set({
-      displayName: myName, email: currentUser.email, color: MEMBER_COLORS[colorIdx], joinedAt: new Date().toISOString()
+      displayName: myName, email: currentUser.email, color: MEMBER_COLORS[colorIdx], joinedAt: new Date().toISOString(), role: 'member'
     });
     await db.ref(`userHouseholds/${uid}`).set(hid);
     await loadHousehold(hid);
@@ -985,8 +996,11 @@ async function doJoin() {
 let _inviteLink = '';
 
 function showInvite() {
-  const members  = Object.values(household?.members || {});
-  const code     = household?.inviteCode || '------';
+  const memberEntries = Object.entries(household?.members || {});
+  const members       = memberEntries.map(([id, m]) => ({ ...m, uid: id }));
+  const myRole        = getMyRole();
+  const isAdmin       = myRole === 'admin';
+  const code          = household?.inviteCode || '------';
   _inviteLink    = `https://margihdesai.github.io/Second-Brain/second-brain.html?code=${code}`;
 
   document.getElementById('invite-body').innerHTML = `
@@ -1024,19 +1038,19 @@ function showInvite() {
     </div>
 
     <div style="margin-top:18px;border-top:1px solid #F3F4F6;padding-top:14px;">
-      <div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:8px;">Members (${members.length})</div>
-      ${members.map(m=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-        <div style="width:24px;height:24px;border-radius:50%;background:${m.color};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:white;">${m.displayName[0]}</div>
-        <span style="font-size:13px;color:#374151;">${m.displayName}</span>
-        ${m.email===currentUser?.email?'<span style="font-size:11px;color:#9CA3AF;">(you)</span>':''}
-      </div>`).join('')}
-    </div>
-
-    <div style="margin-top:16px;border-top:1px solid #FEE2E2;padding-top:14px;">
-      <button onclick="leaveOrDeleteBoard()"
-        style="font-size:12px;color:#DC2626;background:none;border:none;cursor:pointer;text-decoration:underline;padding:0;">
-        ${household?.createdBy === currentUser?.uid ? '🗑 Delete this board' : '🚪 Leave this board'}
-      </button>
+      <div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:10px;">Members (${members.length})</div>
+      ${members.map(m => {
+        const isMe   = m.email === currentUser?.email;
+        const role   = m.role || (household?.createdBy === m.uid ? 'admin' : 'member');
+        const canPromote = isAdmin && !isMe && role !== 'admin';
+        return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+          <div style="width:24px;height:24px;border-radius:50%;background:${m.color};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:white;flex-shrink:0;">${m.displayName[0]}</div>
+          <span style="font-size:13px;color:#374151;flex:1;">${esc(m.displayName)}</span>
+          <span style="font-size:10px;padding:2px 8px;border-radius:50px;background:${role==='admin'?'#F5F3FF':'#F3F4F6'};color:${role==='admin'?'#6D28D9':'#6B7280'};font-weight:600;">${role}</span>
+          ${isMe ? '<span style="font-size:11px;color:#9CA3AF;">(you)</span>' : ''}
+          ${canPromote ? `<button onclick="promoteToAdmin('${m.uid}')" style="font-size:11px;padding:3px 10px;border-radius:50px;border:1px solid #E5E7EB;background:white;cursor:pointer;color:#374151;white-space:nowrap;">Make Admin</button>` : ''}
+        </div>`;
+      }).join('')}
     </div>`;
 
   document.getElementById('invite-overlay').classList.add('on');
@@ -1087,44 +1101,122 @@ function copyInviteLink() {
 function closeInvite()       { document.getElementById('invite-overlay').classList.remove('on'); }
 function maybeCloseInvite(ev){ if (ev.target===document.getElementById('invite-overlay')) closeInvite(); }
 
-async function leaveOrDeleteBoard() {
+// ─── ROLES ───────────────────────────────────────────────────
+function getMyRole() {
+  if (!household || !currentUser) return 'member';
+  const uid  = currentUser.uid;
+  const role = household.members?.[uid]?.role;
+  if (role) return role;
+  return household.createdBy === uid ? 'admin' : 'member';
+}
+
+function openBoardActions() {
   if (!household || !currentUser) return;
-  const isCreator   = household.createdBy === currentUser.uid;
-  const memberCount = Object.keys(household.members || {}).length;
-  const boardName   = household.name;
+  const uid         = currentUser.uid;
+  const members     = household.members || {};
+  const memberList  = Object.entries(members);
+  const memberCount = memberList.length;
+  const myRole      = getMyRole();
+  const isAdmin     = myRole === 'admin';
+  const adminCount  = memberList.filter(([, m]) => (m.role || (household.createdBy === m.uid ? 'admin' : 'member')) === 'admin').length;
+  const otherMembers = memberList.filter(([id]) => id !== uid);
+  const el          = document.getElementById('board-actions-body');
 
-  const msg = isCreator
-    ? (memberCount > 1
-        ? `Delete "${boardName}" for all ${memberCount} members? This cannot be undone.`
-        : `Delete "${boardName}"? This cannot be undone.`)
-    : `Leave "${boardName}"? You'll need a new invite code to rejoin.`;
+  const cancelBtn = `<button onclick="closeBoardActions()" style="width:100%;padding:10px;border-radius:50px;border:1px solid #E5E7EB;background:white;font-size:13px;cursor:pointer;margin-top:6px;">Cancel</button>`;
+  const deleteBtn = (label) => `<button onclick="confirmDelete()" style="width:100%;padding:10px;border-radius:50px;border:1px solid #FCA5A5;background:white;color:#DC2626;font-size:13px;font-weight:500;cursor:pointer;">${label}</button>`;
 
-  if (!confirm(msg)) return;
+  // Sole member — only option is delete
+  if (memberCount === 1) {
+    document.getElementById('board-actions-title').textContent = '🗑 Delete Board';
+    el.innerHTML = `
+      <p style="font-size:13px;color:#6B7280;margin-bottom:20px;">You're the only member. All data will be permanently deleted.</p>
+      ${deleteBtn('🗑 Delete Board')}${cancelBtn}`;
 
+  // Regular member — can only leave
+  } else if (!isAdmin) {
+    document.getElementById('board-actions-title').textContent = '🚪 Leave Board';
+    el.innerHTML = `
+      <p style="font-size:13px;color:#6B7280;margin-bottom:20px;">You'll be removed from <strong>"${esc(household.name)}"</strong>. You'll need an invite code to rejoin.</p>
+      <button onclick="confirmLeave()" style="width:100%;padding:10px;border-radius:50px;border:none;background:#2D2535;color:white;font-size:13px;font-weight:600;cursor:pointer;">🚪 Leave Board</button>${cancelBtn}`;
+
+  // Admin, sole admin — must transfer before leaving
+  } else if (adminCount <= 1) {
+    document.getElementById('board-actions-title').textContent = 'Board Actions';
+    el.innerHTML = `
+      <div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;padding:11px 14px;margin-bottom:16px;font-size:13px;color:#92400E;">
+        You're the only admin. Make someone else admin before leaving.
+      </div>
+      <div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:10px;">Transfer admin to:</div>
+      <div style="display:flex;flex-direction:column;gap:7px;margin-bottom:18px;">
+        ${otherMembers.map(([mid, m]) => `
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div style="width:26px;height:26px;border-radius:50%;background:${m.color};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:white;flex-shrink:0;">${m.displayName[0]}</div>
+            <span style="font-size:13px;color:#374151;flex:1;">${esc(m.displayName)}</span>
+            <button onclick="promoteToAdmin('${mid}')" style="padding:4px 12px;border-radius:50px;border:1px solid #E5E7EB;background:white;font-size:12px;font-weight:500;cursor:pointer;color:#374151;">Make Admin</button>
+          </div>`).join('')}
+      </div>
+      <div style="border-top:1px solid #FEE2E2;padding-top:14px;">
+        ${deleteBtn('🗑 Delete Board for Everyone')}
+      </div>${cancelBtn}`;
+
+  // Admin with other admins — can leave or delete
+  } else {
+    document.getElementById('board-actions-title').textContent = 'Board Actions';
+    el.innerHTML = `
+      <p style="font-size:13px;color:#6B7280;margin-bottom:16px;">What would you like to do with <strong>"${esc(household.name)}"</strong>?</p>
+      <button onclick="confirmLeave()" style="width:100%;padding:10px;border-radius:50px;border:1px solid #E5E7EB;background:white;font-size:13px;font-weight:500;cursor:pointer;margin-bottom:8px;">🚪 Leave Board</button>
+      ${deleteBtn('🗑 Delete Board for Everyone')}${cancelBtn}`;
+  }
+
+  document.getElementById('board-actions-overlay').classList.add('on');
+}
+
+async function promoteToAdmin(uid) {
+  if (!household) return;
   try {
-    const hid = household.id;
-    const uid = currentUser.uid;
-
-    if (isCreator) {
-      await db.ref(`households/${hid}`).remove();
-      await db.ref(`inviteCodes/${household.inviteCode}`).remove();
-    } else {
-      await db.ref(`households/${hid}/members/${uid}`).remove();
-    }
-    await db.ref(`userHouseholds/${uid}`).remove();
-
-    if (entriesRef) { entriesRef.off(); entriesRef = null; }
-    household = null; entries = [];
-    closeInvite();
-    document.getElementById('invite-btn').style.display    = 'none';
-    document.getElementById('dashboard-btn').style.display = 'none';
-    document.getElementById('leave-btn').style.display     = 'none';
-    document.getElementById('board').innerHTML             = '';
-    document.getElementById('tab-bar').innerHTML           = '';
-    document.getElementById('board-name').textContent      = 'Second Brain';
-    document.getElementById('setup-screen').style.display = 'flex';
+    await db.ref(`households/${household.id}/members/${uid}/role`).set('admin');
+    household.members[uid].role = 'admin';
+    trackEvent('admin_promoted');
+    openBoardActions();
   } catch(e) { alert('Error: ' + e.message); }
 }
+
+async function confirmLeave() {
+  closeBoardActions();
+  const uid = currentUser.uid;
+  try {
+    await db.ref(`households/${household.id}/members/${uid}`).remove();
+    await db.ref(`userHouseholds/${uid}`).remove();
+    resetToSetup();
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+async function confirmDelete() {
+  if (!confirm(`Delete "${household.name}"? This cannot be undone.`)) return;
+  closeBoardActions();
+  try {
+    await db.ref(`households/${household.id}`).remove();
+    await db.ref(`inviteCodes/${household.inviteCode}`).remove();
+    await db.ref(`userHouseholds/${currentUser.uid}`).remove();
+    resetToSetup();
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+function resetToSetup() {
+  if (entriesRef) { entriesRef.off(); entriesRef = null; }
+  household = null; entries = [];
+  closeInvite();
+  document.getElementById('invite-btn').style.display    = 'none';
+  document.getElementById('dashboard-btn').style.display = 'none';
+  document.getElementById('leave-btn').style.display     = 'none';
+  document.getElementById('board').innerHTML             = '';
+  document.getElementById('tab-bar').innerHTML           = '';
+  document.getElementById('board-name').textContent      = 'Second Brain';
+  document.getElementById('setup-screen').style.display = 'flex';
+}
+
+function closeBoardActions()        { document.getElementById('board-actions-overlay').classList.remove('on'); }
+function maybeCloseBoardActions(ev) { if (ev.target === document.getElementById('board-actions-overlay')) closeBoardActions(); }
 
 // ────────────────────────────────────────────────────────────
 //  DATA

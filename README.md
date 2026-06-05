@@ -2,7 +2,7 @@
 
 A shared household kanban board — built for couples and families to offload tasks, ideas, worries, purchases, trips, and life admin into one place that syncs in real-time across all devices.
 
-**[https://margihdesai.github.io/Second-Brain/app/](https://margihdesai.github.io/Second-Brain/app/)**
+**[https://margihdesai.github.io/Second-Brain/](https://margihdesai.github.io/Second-Brain/)**
 
 ---
 

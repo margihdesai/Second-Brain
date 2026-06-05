@@ -38,7 +38,7 @@ jobs:
           mkdir -p deploy/app
           # Static files at the root (landing page, old app, story)
           cp index.html deploy/
-          cp second-brain.html deploy/ 2>/dev/null || true
+          # second-brain.html removed — React app is the only version
           cp story.html deploy/ 2>/dev/null || true
           # React app goes into /app subdirectory
           cp -r app/dist/. deploy/app/

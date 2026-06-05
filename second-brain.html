@@ -891,6 +891,11 @@ async function checkHousehold(user) {
 
 async function loadHousehold(hid) {
   const snap = await db.ref(`households/${hid}`).once('value');
+  if (!snap.exists()) {
+    await db.ref(`userHouseholds/${currentUser.uid}`).remove();
+    document.getElementById('setup-screen').style.display = 'flex';
+    return;
+  }
   household  = { id: hid, ...snap.val() };
   if (entriesRef) entriesRef.off();
   entriesRef = db.ref(`households/${hid}/entries`);
@@ -1023,6 +1028,13 @@ function showInvite() {
         <span style="font-size:13px;color:#374151;">${m.displayName}</span>
         ${m.email===currentUser?.email?'<span style="font-size:11px;color:#9CA3AF;">(you)</span>':''}
       </div>`).join('')}
+    </div>
+
+    <div style="margin-top:16px;border-top:1px solid #FEE2E2;padding-top:14px;">
+      <button onclick="leaveOrDeleteBoard()"
+        style="font-size:12px;color:#DC2626;background:none;border:none;cursor:pointer;text-decoration:underline;padding:0;">
+        ${household?.createdBy === currentUser?.uid ? '🗑 Delete this board' : '🚪 Leave this board'}
+      </button>
     </div>`;
 
   document.getElementById('invite-overlay').classList.add('on');
@@ -1072,6 +1084,44 @@ function copyInviteLink() {
 
 function closeInvite()       { document.getElementById('invite-overlay').classList.remove('on'); }
 function maybeCloseInvite(ev){ if (ev.target===document.getElementById('invite-overlay')) closeInvite(); }
+
+async function leaveOrDeleteBoard() {
+  if (!household || !currentUser) return;
+  const isCreator   = household.createdBy === currentUser.uid;
+  const memberCount = Object.keys(household.members || {}).length;
+  const boardName   = household.name;
+
+  const msg = isCreator
+    ? (memberCount > 1
+        ? `Delete "${boardName}" for all ${memberCount} members? This cannot be undone.`
+        : `Delete "${boardName}"? This cannot be undone.`)
+    : `Leave "${boardName}"? You'll need a new invite code to rejoin.`;
+
+  if (!confirm(msg)) return;
+
+  try {
+    const hid = household.id;
+    const uid = currentUser.uid;
+
+    if (isCreator) {
+      await db.ref(`households/${hid}`).remove();
+      await db.ref(`inviteCodes/${household.inviteCode}`).remove();
+    } else {
+      await db.ref(`households/${hid}/members/${uid}`).remove();
+    }
+    await db.ref(`userHouseholds/${uid}`).remove();
+
+    if (entriesRef) { entriesRef.off(); entriesRef = null; }
+    household = null; entries = [];
+    closeInvite();
+    document.getElementById('invite-btn').style.display    = 'none';
+    document.getElementById('dashboard-btn').style.display = 'none';
+    document.getElementById('board').innerHTML             = '';
+    document.getElementById('tab-bar').innerHTML           = '';
+    document.getElementById('board-name').textContent      = 'Second Brain';
+    document.getElementById('setup-screen').style.display = 'flex';
+  } catch(e) { alert('Error: ' + e.message); }
+}
 
 // ────────────────────────────────────────────────────────────
 //  DATA

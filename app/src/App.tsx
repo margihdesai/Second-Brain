@@ -5,6 +5,7 @@ import LoginScreen  from './components/Auth/LoginScreen';
 import SetupScreen  from './components/Setup/SetupScreen';
 import Header       from './components/Header/Header';
 import Board, { CATS } from './components/Board/Board';
+import BoardSkeleton from './components/Board/BoardSkeleton';
 import Chat         from './components/Chat/Chat';
 import './App.css';
 
@@ -40,7 +41,18 @@ export default function App() {
   const partner = household?.members?.[user?.uid || '']?.displayName || user?.displayName || 'You';
   const myRole  = getMyRole();
 
-  if (authLoading || hhLoading) return null;
+  if (authLoading) return (
+    <div style={{ position:'fixed', inset:0, background:'#EEEAE3', display:'flex', alignItems:'center', justifyContent:'center' }}>
+      <div style={{ fontSize:42 }}>🧠</div>
+    </div>
+  );
+
+  if (hhLoading && household) return (
+    <>
+      <Header household={household} onInvite={() => {}} onBoardActions={() => {}} onInsights={() => {}} onDigest={() => {}} onSignOut={signOut} />
+      <BoardSkeleton />
+    </>
+  );
 
   if (!user) return (
     <LoginScreen error={loginError} onSignIn={async () => {

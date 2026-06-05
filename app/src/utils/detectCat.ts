@@ -20,28 +20,39 @@ export function detectCat(text: string): string {
 const WORKER_URL = import.meta.env.VITE_CATEGORISE_WORKER_URL as string | undefined;
 
 export interface AIResult {
+  intent: 'add' | 'query' | 'chat';
   category: string;
   reply: string;
 }
 
+export interface ChatContext {
+  partner: string;
+  history: string[];
+  entries: { text: string; category: string; author: string; completed: boolean }[];
+}
+
 /**
- * AI-powered categorisation + reply via Cloudflare Worker.
- * Falls back to keyword matching (no reply) if the Worker is unavailable.
+ * AI-powered intent detection + reply via Cloudflare Worker.
+ * Falls back to keyword categorisation (intent="add") if the Worker is unavailable.
  */
-export async function detectCatAI(text: string): Promise<AIResult> {
-  if (!WORKER_URL) return { category: detectCat(text), reply: '' };
+export async function detectCatAI(text: string, context?: ChatContext): Promise<AIResult> {
+  if (!WORKER_URL) return { intent: 'add', category: detectCat(text), reply: '' };
 
   try {
     const res = await fetch(WORKER_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text }),
-      signal: AbortSignal.timeout(4000),
+      body: JSON.stringify({ text, ...context }),
+      signal: AbortSignal.timeout(5000),
     });
-    if (!res.ok) return { category: detectCat(text), reply: '' };
-    const { category, reply } = await res.json() as { category: string; reply?: string };
-    return { category: category || detectCat(text), reply: reply ?? '' };
+    if (!res.ok) return { intent: 'add', category: detectCat(text), reply: '' };
+    const result = await res.json() as AIResult;
+    return {
+      intent: result.intent ?? 'add',
+      category: result.category || detectCat(text),
+      reply: result.reply ?? '',
+    };
   } catch {
-    return { category: detectCat(text), reply: '' };
+    return { intent: 'add', category: detectCat(text), reply: '' };
   }
 }

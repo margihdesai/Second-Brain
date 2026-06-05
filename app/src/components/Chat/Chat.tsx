@@ -1,24 +1,15 @@
 import { useState, useRef, useEffect } from 'react';
 import type { Entry } from '../../types';
-import { detectCat, detectCatAI } from '../../utils/detectCat';
+import { detectCatAI } from '../../utils/detectCat';
 
-const CATS_KEYS = [
-  { id:'task',       e:'✅', l:'Tasks',      keys:['need to','should','must','have to','remember to','todo','call','fix','schedule','book','remind','pick up','finish','complete','send','pay','submit'] },
-  { id:'worry',      e:'💭', l:'Worries',    keys:['worried','worry','anxious','anxiety','stressed','stress','scared','nervous','fear','overwhelmed','concerned','dread','uneasy','unsure','panic','bothering me'] },
-  { id:'idea',       e:'💡', l:'Ideas',      keys:['idea','what if','maybe we','could we','would be nice','imagine','how about','what about','let\'s try','suggestion','experiment','thinking of'] },
-  { id:'purchase',   e:'🛒', l:'Purchases',  keys:['buy','order','purchase','need to get','looking for','amazon','shop','groceries','stock up','deal','sale','delivery'] },
-  { id:'trip',       e:'✈️', l:'Trips',      keys:['trip','travel','visit','vacation','flight','hotel','airbnb','passport','destination','holiday','road trip','getaway'] },
-  { id:'life-admin', e:'📋', l:'Life Admin', keys:['insurance','taxes','appointment','doctor','dentist','vet','bank','renew','deadline','budget','bill','lease','license','utilities','subscription'] },
-];
-
-const BOT: Record<string, string[]> = {
-  task:        ["Added ✅ — on your task list.", "Got it ✅.", "Noted ✅ and saved."],
-  worry:       ["Saved 💭. You can let it go for now.", "I hear you 💭. It's safe here."],
-  idea:        ["Love it 💡! On the board.", "Great idea! 💡 Saved."],
-  purchase:    ["On the list 🛒!", "Added to purchases 🛒."],
-  trip:        ["Ooh, travel! ✈️ Saved.", "Added ✈️! That sounds exciting."],
-  'life-admin':["Filed under Life Admin 📋.", "Saved 📋. Good staying on top of it."],
-  other:       ["Got it 📝. Saved!", "Noted 📝!"],
+const BOT_FALLBACK: Record<string, string> = {
+  task: 'Added ✅ — on your task list.',
+  worry: "Saved 💭. You can let it go for now.",
+  idea: 'Love it 💡! On the board.',
+  purchase: 'On the list 🛒!',
+  trip: 'Ooh, travel! ✈️ Saved.',
+  'life-admin': 'Filed under Life Admin 📋.',
+  other: 'Got it 📝. Saved!',
 };
 
 interface Msg { role: 'bot' | 'user'; text: string; qrs?: { label: string; val: string }[]; }
@@ -36,18 +27,13 @@ export default function Chat({ partner, entries, hintCat, forceOpen, onAdd, onDe
   const [open, setOpen]           = useState(false);
   const [msgs, setMsgs]           = useState<Msg[]>([]);
   const [input, setInput]         = useState('');
-  const [state, setState]         = useState<'ready' | 'await_cat'>('ready');
-  const [pending, setPending]     = useState<string | null>(null);
   const [activeCat, setActiveCat] = useState<string | null>(hintCat);
-  const lastCatCtx                = useRef<string | null>(null); // last category discussed in a query
   const msgsEl                    = useRef<HTMLDivElement>(null);
 
   useEffect(() => { setActiveCat(hintCat); if (hintCat) setOpen(true); }, [hintCat]);
   useEffect(() => { if (forceOpen) setOpen(true); }, [forceOpen]);
   useEffect(() => { if (open && msgs.length === 0) greet(); }, [open]);
   useEffect(() => { if (msgsEl.current) msgsEl.current.scrollTop = msgsEl.current.scrollHeight; }, [msgs]);
-
-  function rand(arr: string[]) { return arr[Math.floor(Math.random() * arr.length)]; }
 
   function greet() {
     addBot(`Hey ${partner}! 👋 What's on your mind? Just tell me — I'll sort it.`);
@@ -68,114 +54,46 @@ export default function Chat({ partner, entries, hintCat, forceOpen, onAdd, onDe
     setTimeout(() => void processMsg(text), 320);
   }
 
-  function answerBoardQuery(lo: string): string | null {
-    const active = entries.filter(e => !e.completed);
-    const completed = entries.filter(e => e.completed);
-
-    const catMatch = CATS_KEYS.find(c =>
-      lo.includes(c.id) || lo.includes(c.l.toLowerCase()) || lo.includes(c.l.toLowerCase().replace(/s$/, ''))
-    );
-
-    // Follow-up: "what is it?", "show me", "list them", "what are they?"
-    if (/\b(what is it|show me|list (it|them)|what are they|tell me more|which one)\b/.test(lo)) {
-      const ctx = lastCatCtx.current;
-      const cat = ctx ? CATS_KEYS.find(c => c.id === ctx) : null;
-      const items = active.filter(e => ctx ? e.category === ctx : true);
-      if (!cat || !items.length) return ctx ? `Nothing in ${cat?.l ?? ctx} right now!` : "Not sure what you mean — ask me about a specific category!";
-      return `${cat.e} ${cat.l}:\n${items.map(e => `• ${e.text}`).join('\n')}`;
-    }
-
-    // "how many X"
-    if (/\b(how many|count|number of)\b/.test(lo)) {
-      if (catMatch) {
-        const n = active.filter(e => e.category === catMatch.id).length;
-        lastCatCtx.current = catMatch.id;
-        return `You have ${n} ${n === 1 ? catMatch.l.toLowerCase().replace(/s$/, '') : catMatch.l.toLowerCase()} on the board ${catMatch.e}.`;
-      }
-      const n = active.length;
-      lastCatCtx.current = null;
-      return `There ${n === 1 ? 'is' : 'are'} ${n} active ${n === 1 ? 'item' : 'items'} on the board, plus ${completed.length} completed 🧠.`;
-    }
-
-    // "show my X" / "list my X"
-    if (/\b(show|list|what are|what's|whats)\b.*(my|mine)\b/.test(lo) ||
-        /\bmy\b.*(task|worry|idea|purchase|trip|life.admin|item)\b/.test(lo)) {
-      const mine = active.filter(e => e.author === partner && (!catMatch || e.category === catMatch.id));
-      if (catMatch) lastCatCtx.current = catMatch.id;
-      if (!mine.length) return `You haven't added any ${catMatch ? catMatch.l.toLowerCase() : 'items'} yet!`;
-      return `Your ${catMatch ? catMatch.l.toLowerCase() : 'items'} ${catMatch?.e ?? '📝'}:\n${mine.map(e => `• ${e.text}`).join('\n')}`;
-    }
-
-    // "show [name]'s"
-    const nameMatch = lo.match(/\bshow\s+(\w+)'?s?\b|\bwhat did\s+(\w+)\b/);
-    if (nameMatch) {
-      const name = (nameMatch[1] || nameMatch[2]).toLowerCase();
-      const theirs = active.filter(e => e.author.toLowerCase().startsWith(name));
-      lastCatCtx.current = null;
-      if (!theirs.length) return `Nothing from ${nameMatch[1] || nameMatch[2]} yet!`;
-      return `From ${theirs[0].author} 📝:\n${theirs.map(e => `• ${e.text}`).join('\n')}`;
-    }
-
-    // "summary" / "show everything"
-    if (/\b(summary|summarize|show everything|show all|overview)\b/.test(lo)) {
-      const lines = CATS_KEYS.map(c => {
-        const n = active.filter(e => e.category === c.id).length;
-        return n > 0 ? `${c.e} ${c.l}: ${n}` : null;
-      }).filter(Boolean);
-      lastCatCtx.current = null;
-      if (!lines.length) return "The board is empty — a clean slate! ✨";
-      return `Here's the board:\n${lines.join('\n')}\n(${completed.length} completed ☑️)`;
-    }
-
-    return null;
-  }
-
   async function processMsg(text: string) {
-    const lo = text.toLowerCase();
-    if (/^(hi|hey|hello|yo)\b/.test(lo)) { addBot("Hey! 👋 What's on your mind?"); return; }
-    if (/\b(thank|thanks|thx)\b/.test(lo)) { addBot("Happy to help 🧠 Anything else?"); return; }
-    if (/\b(undo|scratch that|never mind)\b/.test(lo)) {
+    // Undo is always local — needs direct access to entries + onDelete
+    if (/\b(undo|scratch that|never mind)\b/i.test(text)) {
       const last = entries.find(e => e.author === partner);
-      if (last) { onDelete(last.id); addBot(`Removed "${last.text.slice(0,40)}…" 🗑`); }
+      if (last) { onDelete(last.id); addBot(`Removed "${last.text.slice(0, 40)}…" 🗑`); }
       else addBot("Nothing recent to undo!");
       return;
     }
 
-    if (state === 'await_cat') { handleCatReply(text); return; }
-
+    // When a column header hinted a category, skip AI and add directly
     if (activeCat) {
       const cat = activeCat; setActiveCat(null);
-      onAdd(text, cat); addBot(rand(BOT[cat] || BOT.other));
+      onAdd(text, cat);
+      addBot(BOT_FALLBACK[cat] ?? BOT_FALLBACK.other);
       return;
     }
 
-    // Answer questions about the board without adding an entry
-    const boardAnswer = answerBoardQuery(lo);
-    if (boardAnswer) { addBot(boardAnswer); return; }
+    // Build history from recent messages so Claude has conversation context
+    const history = msgs.slice(-8).map(m => `${m.role === 'user' ? 'User' : 'Bot'}: ${m.text}`);
+    const context = {
+      partner,
+      history,
+      entries: entries.map(e => ({ text: e.text, category: e.category, author: e.author, completed: e.completed })),
+    };
 
-    const { category: cat, reply } = await detectCatAI(text);
-    onAdd(text, cat);
-    addBot(reply || rand(BOT[cat] || BOT.other));
-  }
+    const { intent, category: cat, reply } = await detectCatAI(text, context);
 
-  function handleCatReply(reply: string) {
-    setState('ready');
-    const lo = reply.toLowerCase();
-    let cat: string | null = null;
-    for (const c of CATS_KEYS) { if (lo.includes(c.id) || lo.includes(c.l.toLowerCase().replace(/s$/,''))) { cat = c.id; break; } }
-    if (!cat) cat = detectCat(pending || reply);
-    const text = pending || reply;
-    setPending(null);
-    onAdd(text, cat); addBot(rand(BOT[cat] || BOT.other));
+    if (intent === 'add') {
+      onAdd(text, cat);
+      addBot(reply || (BOT_FALLBACK[cat] ?? BOT_FALLBACK.other));
+    } else {
+      // 'query' or 'chat' — just reply, nothing added to board
+      addBot(reply || "I'm not sure — try asking differently?");
+    }
   }
 
   function qrClick(val: string, label: string) {
     addUser(label);
-    if (state === 'await_cat') {
-      setState('ready');
-      const text = pending || label; setPending(null);
-      onAdd(text, val); addBot(rand(BOT[val] || BOT.other));
-    }
+    onAdd(label, val);
+    addBot(BOT_FALLBACK[val] ?? BOT_FALLBACK.other);
   }
 
   return (

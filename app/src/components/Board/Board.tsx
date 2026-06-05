@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { Entry, Category } from '../../types';
 import Card from './Card';
 import { detectCat } from '../../utils/detectCat';
@@ -46,8 +46,29 @@ export default function Board({ entries, partner, isAdmin, getMemberColor, onAck
   const [activeTab, setActiveTab] = useState('task');
   const [quickText, setQuickText] = useState('');
   const [addedCat, setAddedCat]   = useState<string | null>(null);
-  const isMobile = window.innerWidth <= 640;
-  void isMobile;
+  const [openCats, setOpenCats] = useState<Set<string>>(new Set(CATS.map(c => c.id)));
+  const initializedRef = useRef(false);
+
+  useEffect(() => {
+    if (!initializedRef.current && entries.length > 0) {
+      initializedRef.current = true;
+      setOpenCats(new Set(
+        CATS.filter(cat => {
+          return cat.id === 'completed'
+            ? entries.some(e => e.completed)
+            : entries.some(e => e.category === cat.id && !e.completed);
+        }).map(c => c.id)
+      ));
+    }
+  }, [entries]);
+
+  function toggleCat(id: string) {
+    setOpenCats(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
 
   const catLabels: Record<string, string> = {
     task:'Tasks', worry:'Worries', idea:'Ideas', purchase:'Purchases',
@@ -124,15 +145,17 @@ export default function Board({ entries, partner, isAdmin, getMemberColor, onAck
           const cards = getCards(cat);
           const tint  = colTints[cat.id] || colTints.other;
 
+          const isOpen = openCats.has(cat.id);
           return (
-            <div key={cat.id} className="col" data-cat={cat.id}>
-              <div className="col-head" style={{ background: tint.bg, color: tint.color }}>
+            <div key={cat.id} className={`col ${isOpen ? 'open' : ''}`} data-cat={cat.id}>
+              <div className="col-head" style={{ background: tint.bg, color: tint.color }} onClick={() => toggleCat(cat.id)}>
                 <span className="col-emoji">{cat.e}</span>
                 <span className="col-label">{cat.l}</span>
                 <span className="col-count">{cards.length}</span>
                 {cat.id !== 'completed' && (
-                  <button className="col-plus" onClick={() => onOpenChatFor(cat.id)}>+</button>
+                  <button className="col-plus" onClick={e => { e.stopPropagation(); onOpenChatFor(cat.id); }}>+</button>
                 )}
+                <span className="col-chevron">▼</span>
               </div>
               <div
                 className={`col-body ${overCat === cat.id ? 'over' : ''}`}

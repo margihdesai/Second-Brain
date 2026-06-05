@@ -972,10 +972,9 @@ async function doJoin() {
     if (!codeSnap.exists()) { errEl.textContent = 'Invalid invite code. Check and try again.'; return; }
     const hid = codeSnap.val();
     const uid = currentUser.uid;
-    const colorSnap = await db.ref(`households/${hid}/memberCount`).once('value');
-    const colorIdx = Math.min((colorSnap.val() || 1), MEMBER_COLORS.length - 1);
+    const colorIdx = Math.floor(Math.random() * (MEMBER_COLORS.length - 1)) + 1;
     await db.ref(`households/${hid}/members/${uid}`).set({
-      displayName: myName, email: currentUser.email, color: MEMBER_COLORS[colorIdx], joinedAt: new Date().toISOString()
+      displayName: myName, email: currentUser.email, color: MEMBER_COLORS[colorIdx], joinedAt: new Date().toISOString(), role: 'member'
     });
     await db.ref(`userHouseholds/${uid}`).set(hid);
     await loadHousehold(hid);

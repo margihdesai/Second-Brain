@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { Entry, Category } from '../../types';
 import Card from './Card';
+import { detectCat } from '../../utils/detectCat';
 
 const CATS: Category[] = [
   { id:'task',       e:'✅', l:'Tasks' },
@@ -36,13 +37,37 @@ interface Props {
   onOpenDetail:   (id: string) => void;
   onCategoryMove: (id: string, cat: string) => void;
   onOpenChatFor:  (cat: string) => void;
+  onAdd:          (text: string, cat: string) => void;
 }
 
-export default function Board({ entries, partner, isAdmin, getMemberColor, onAck, onComplete, onDelete, onReassign, onOpenDetail, onCategoryMove, onOpenChatFor }: Props) {
+export default function Board({ entries, partner, isAdmin, getMemberColor, onAck, onComplete, onDelete, onReassign, onOpenDetail, onCategoryMove, onOpenChatFor, onAdd }: Props) {
   const [dragId, setDragId]       = useState<string | null>(null);
   const [overCat, setOverCat]     = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('task');
+  const [quickText, setQuickText] = useState('');
+  const [addedCat, setAddedCat]   = useState<string | null>(null);
   const isMobile = window.innerWidth <= 640;
+
+  const catLabels: Record<string, string> = {
+    task:'Tasks', worry:'Worries', idea:'Ideas', purchase:'Purchases',
+    trip:'Trips', 'life-admin':'Life Admin', other:'Other',
+  };
+  const catEmoji: Record<string, string> = {
+    task:'✅', worry:'💭', idea:'💡', purchase:'🛒',
+    trip:'✈️', 'life-admin':'📋', other:'📝',
+  };
+
+  const detectedCat = quickText.trim() ? detectCat(quickText) : null;
+
+  function submitQuick() {
+    const text = quickText.trim();
+    if (!text) return;
+    const cat = detectCat(text);
+    onAdd(text, cat);
+    setAddedCat(cat);
+    setQuickText('');
+    setTimeout(() => setAddedCat(null), 2000);
+  }
 
   function getCards(cat: Category) {
     return cat.id === 'completed'
@@ -63,6 +88,34 @@ export default function Board({ entries, partner, isAdmin, getMemberColor, onAck
 
   return (
     <>
+      {/* Quick add bar */}
+      <div style={{ padding:'12px 16px 0', maxWidth:680, margin:'0 auto' }}>
+        <div style={{ display:'flex', gap:8, alignItems:'center', background:'#fff', border:'1.5px solid #E2E8F0', borderRadius:12, padding:'8px 12px', boxShadow:'0 1px 4px rgba(0,0,0,0.06)' }}>
+          <span style={{ fontSize:20 }}>{detectedCat ? catEmoji[detectedCat] : '✏️'}</span>
+          <input
+            style={{ flex:1, border:'none', outline:'none', fontSize:15, background:'transparent', color:'#1E293B' }}
+            placeholder="Add anything — tasks, ideas, worries…"
+            value={quickText}
+            onChange={e => setQuickText(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') submitQuick(); }}
+          />
+          {detectedCat && (
+            <span style={{ fontSize:11, color:'#64748B', background:'#F1F5F9', borderRadius:6, padding:'2px 8px', whiteSpace:'nowrap' }}>
+              → {catLabels[detectedCat]}
+            </span>
+          )}
+          <button
+            onClick={submitQuick}
+            style={{ background:'#1E293B', color:'#fff', border:'none', borderRadius:8, padding:'6px 14px', fontSize:13, fontWeight:600, cursor:'pointer', opacity: quickText.trim() ? 1 : 0.4 }}
+          >Add</button>
+        </div>
+        {addedCat && (
+          <div style={{ textAlign:'center', marginTop:6, fontSize:12, color:'#64748B' }}>
+            {catEmoji[addedCat]} Added to {catLabels[addedCat]}
+          </div>
+        )}
+      </div>
+
       {/* Mobile tab bar */}
       <div className="tab-bar">
         {CATS.map(cat => {

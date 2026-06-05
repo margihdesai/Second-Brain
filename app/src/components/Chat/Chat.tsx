@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import type { Entry } from '../../types';
+import { detectCat } from '../../utils/detectCat';
 
 const CATS_KEYS = [
   { id:'task',       e:'✅', l:'Tasks',      keys:['need to','should','must','have to','remember to','todo','call','fix','schedule','book','remind','pick up','finish','complete','send','pay','submit'] },
@@ -9,12 +10,6 @@ const CATS_KEYS = [
   { id:'trip',       e:'✈️', l:'Trips',      keys:['trip','travel','visit','vacation','flight','hotel','airbnb','passport','destination','holiday','road trip','getaway'] },
   { id:'life-admin', e:'📋', l:'Life Admin', keys:['insurance','taxes','appointment','doctor','dentist','vet','bank','renew','deadline','budget','bill','lease','license','utilities','subscription'] },
 ];
-
-function detectCat(text: string) {
-  const lo = text.toLowerCase();
-  const scored = CATS_KEYS.map(c => ({ id: c.id, score: c.keys.filter(k => lo.includes(k)).length })).filter(x => x.score > 0).sort((a,b) => b.score - a.score);
-  return scored[0]?.id || 'other';
-}
 
 const BOT: Record<string, string[]> = {
   task:        ["Added ✅ — on your task list.", "Got it ✅.", "Noted ✅ and saved."],

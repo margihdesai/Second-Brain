@@ -7,7 +7,147 @@ import Header       from './components/Header/Header';
 import Board, { CATS } from './components/Board/Board';
 import BoardSkeleton from './components/Board/BoardSkeleton';
 import Chat         from './components/Chat/Chat';
+import type { Entry, Household } from './types';
 import './App.css';
+
+const DEMO_MODE = new URLSearchParams(window.location.search).get('demo') === 'true';
+
+const DEMO_HOUSEHOLD: Household = {
+  id: 'demo', name: 'Demo Board', inviteCode: 'DEMO01', createdAt: '', createdBy: 'u1',
+  members: {
+    u1: { displayName: 'Margi',   email: 'margi@demo.com',   color: '#E07A5F', joinedAt: '', role: 'admin' },
+    u2: { displayName: 'Samarth', email: 'samarth@demo.com', color: '#3D8B8F', joinedAt: '', role: 'member' },
+  },
+};
+
+const ts = (daysAgo: number) => new Date(Date.now() - daysAgo * 864e5).toISOString();
+const DEMO_ENTRIES: Entry[] = [
+  { id:'d1',  text:'Book dentist appointment',       author:'Margi',   category:'task',       ts:ts(1),  acked:false, ackedBy:null, completed:false, completedBy:null, completedAt:null, dueDate: new Date(Date.now()+3*864e5).toISOString().slice(0,10), notes:'' },
+  { id:'d2',  text:'Renew car insurance',            author:'Samarth', category:'life-admin', ts:ts(2),  acked:true,  ackedBy:'Margi', completed:false, completedBy:null, completedAt:null, dueDate:null, notes:'Policy expires end of month' },
+  { id:'d3',  text:'What if we can\'t afford the trip this year?', author:'Margi', category:'worry', ts:ts(1), acked:false, ackedBy:null, completed:false, completedBy:null, completedAt:null, dueDate:null, notes:'' },
+  { id:'d4',  text:'Weekend trip to Lake Tahoe',     author:'Samarth', category:'trip',       ts:ts(3),  acked:true,  ackedBy:'Margi', completed:false, completedBy:null, completedAt:null, dueDate:null, notes:'Check Airbnb availability for July' },
+  { id:'d5',  text:'Oat milk, eggs, sourdough bread', author:'Margi',  category:'purchase',   ts:ts(0),  acked:false, ackedBy:null, completed:false, completedBy:null, completedAt:null, dueDate:null, notes:'' },
+  { id:'d6',  text:'App to track household splits',  author:'Margi',   category:'idea',       ts:ts(4),  acked:true,  ackedBy:'Samarth', completed:false, completedBy:null, completedAt:null, dueDate:null, notes:'' },
+  { id:'d7',  text:'Call landlord about the leak',   author:'Samarth', category:'task',       ts:ts(0),  acked:false, ackedBy:null, completed:false, completedBy:null, completedAt:null, dueDate: new Date(Date.now()+1*864e5).toISOString().slice(0,10), notes:'' },
+  { id:'d8',  text:'File taxes',                     author:'Margi',   category:'life-admin', ts:ts(5),  acked:true,  ackedBy:'Samarth', completed:true,  completedBy:'Margi', completedAt:ts(1), dueDate:null, notes:'' },
+  { id:'d9',  text:'New standing desk',              author:'Samarth', category:'purchase',   ts:ts(6),  acked:false, ackedBy:null, completed:false, completedBy:null, completedAt:null, dueDate:null, notes:'Budget ~$400' },
+  { id:'d10', text:'Weekly meal prep on Sundays',    author:'Margi',   category:'idea',       ts:ts(2),  acked:true,  ackedBy:'Samarth', completed:false, completedBy:null, completedAt:null, dueDate:null, notes:'' },
+];
+
+function DemoApp() {
+  const [entries, setEntries] = useState<Entry[]>(DEMO_ENTRIES);
+  const [detailId, setDetailId]   = useState<string | null>(null);
+  const [reassignId, setReassignId] = useState<string | null>(null);
+  const partner = 'Margi';
+
+  function getMemberColor(name: string) {
+    const m = Object.values(DEMO_HOUSEHOLD.members).find(m => m.displayName === name);
+    return m?.color || '#888';
+  }
+
+  function updateEntry(id: string, changes: Partial<Entry>) {
+    setEntries(prev => prev.map(e => e.id === id ? { ...e, ...changes } : e));
+  }
+
+  function DemoBanner() {
+    return (
+      <div style={{ background:'linear-gradient(135deg,#6B4E71,#2D2535)', color:'white', padding:'11px 20px', display:'flex', alignItems:'center', justifyContent:'center', gap:16, flexWrap:'wrap', fontSize:13 }}>
+        <a href="../" style={{ background:'rgba(255,255,255,0.15)', color:'white', padding:'5px 14px', borderRadius:50, fontSize:12, fontWeight:600, textDecoration:'none', whiteSpace:'nowrap' }}>← Home</a>
+        <span>👀 Demo mode — explore a sample board, no sign-in needed</span>
+        <a href="./" style={{ background:'white', color:'#2D2535', padding:'5px 16px', borderRadius:50, fontSize:12, fontWeight:700, textDecoration:'none', whiteSpace:'nowrap' }}>Create your own board →</a>
+      </div>
+    );
+  }
+
+  function CardDetailModal() {
+    const e = entries.find(x => x.id === detailId);
+    if (!e) return null;
+    const cat = CATS.find(c => c.id === e.category);
+    let dueVal = e.dueDate || '', notesVal = e.notes || '';
+    return (
+      <Modal title={`${cat?.e || '📝'} ${cat?.l || 'Entry'}`} onClose={() => setDetailId(null)}>
+        <div style={{ marginBottom:14 }}>
+          <div style={{ fontSize:13.5, color:'#1F2937', background:'#F9FAFB', borderRadius:8, padding:'10px 12px', lineHeight:1.5 }}>{e.text}</div>
+        </div>
+        <div style={{ marginBottom:14 }}>
+          <label style={{ fontSize:12, fontWeight:600, color:'#374151', display:'block', marginBottom:5 }}>Due date</label>
+          <input type="date" defaultValue={dueVal} onChange={ev => { dueVal = ev.target.value; }}
+            style={{ width:'100%', padding:'8px 12px', border:'1px solid #E5E7EB', borderRadius:8, fontSize:13, fontFamily:'inherit', outline:'none' }} />
+        </div>
+        <div style={{ marginBottom:20 }}>
+          <label style={{ fontSize:12, fontWeight:600, color:'#374151', display:'block', marginBottom:5 }}>Notes</label>
+          <textarea rows={4} defaultValue={notesVal} onChange={ev => { notesVal = ev.target.value; }}
+            style={{ width:'100%', padding:'8px 12px', border:'1px solid #E5E7EB', borderRadius:8, fontSize:13, fontFamily:'inherit', resize:'vertical', outline:'none' }}
+            placeholder="Add context, links, details…" />
+        </div>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+          <span style={{ fontSize:11, color:'#9CA3AF' }}>Added by {e.author}</span>
+          <button onClick={() => { updateEntry(e.id, { dueDate: dueVal || null, notes: notesVal }); setDetailId(null); }}
+            style={{ padding:'8px 20px', borderRadius:50, border:'none', background:'#2D2535', color:'white', fontSize:13, fontWeight:600, cursor:'pointer' }}>Save</button>
+        </div>
+      </Modal>
+    );
+  }
+
+  function ReassignModal() {
+    return (
+      <Modal title="Move to…" onClose={() => setReassignId(null)} maxWidth={320}>
+        <p style={{ fontSize:13, color:'#6B7280', marginBottom:14 }}>Choose a column:</p>
+        <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+          {CATS.filter(c => c.id !== 'completed').map(cat => {
+            const e = entries.find(x => x.id === reassignId);
+            const isCurrent = e?.category === cat.id && !e?.completed;
+            return (
+              <button key={cat.id} onClick={() => { if (reassignId) updateEntry(reassignId, { category: cat.id, completed: false, completedBy: null, completedAt: null }); setReassignId(null); }}
+                style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 14px', border:`1px solid ${isCurrent?'#6B4E71':'#E5E7EB'}`, borderRadius:10, background:isCurrent?'#F5F3FF':'white', cursor:'pointer', fontSize:13, fontWeight:500, textAlign:'left', width:'100%' }}>
+                <span style={{ fontSize:16 }}>{cat.e}</span><span>{cat.l}</span>
+                {isCurrent && <span style={{ marginLeft:'auto', fontSize:11, color:'#6D28D9' }}>current</span>}
+              </button>
+            );
+          })}
+        </div>
+      </Modal>
+    );
+  }
+
+  return (
+    <>
+      <DemoBanner />
+      <Header
+        household={DEMO_HOUSEHOLD}
+        onInvite={() => {}}
+        onBoardActions={() => {}}
+        onInsights={() => {}}
+        onDigest={() => {}}
+        onSignOut={() => {}}
+        isAdmin={false}
+      />
+      <Board
+        entries={entries}
+        partner={partner}
+        isAdmin={false}
+        getMemberColor={getMemberColor}
+        onAck={id => { const e = entries.find(x => x.id === id); if (e) updateEntry(id, { acked: !e.acked, ackedBy: !e.acked ? partner : null }); }}
+        onComplete={id => { const e = entries.find(x => x.id === id); if (e) updateEntry(id, { completed: !e.completed, completedBy: !e.completed ? partner : null, completedAt: !e.completed ? new Date().toISOString() : null }); }}
+        onDelete={id => setEntries(prev => prev.filter(e => e.id !== id))}
+        onReassign={id => setReassignId(id)}
+        onOpenDetail={id => setDetailId(id)}
+        onCategoryMove={(id, cat) => updateEntry(id, { category: cat, completed: false, completedBy: null, completedAt: null })}
+        onOpenChatFor={() => {}}
+        onAdd={(text, cat) => setEntries(prev => [{ id: Date.now().toString(), text, author: partner, category: cat, ts: new Date().toISOString(), acked: false, ackedBy: null, completed: false, completedBy: null, completedAt: null, dueDate: null, notes: '' }, ...prev])}
+      />
+      <Chat
+        partner={partner}
+        entries={entries}
+        hintCat={null}
+        onAdd={(text, cat) => setEntries(prev => [{ id: Date.now().toString(), text, author: partner, category: cat, ts: new Date().toISOString(), acked: false, ackedBy: null, completed: false, completedBy: null, completedAt: null, dueDate: null, notes: '' }, ...prev])}
+        onDelete={id => setEntries(prev => prev.filter(e => e.id !== id))}
+      />
+      {detailId   && <CardDetailModal />}
+      {reassignId && <ReassignModal />}
+    </>
+  );
+}
 
 function Modal({ title, onClose, children, maxWidth = 500 }: { title: string; onClose: () => void; children: React.ReactNode; maxWidth?: number }) {
   return (
@@ -40,6 +180,8 @@ export default function App() {
 
   const partner = household?.members?.[user?.uid || '']?.displayName || user?.displayName || 'You';
   const myRole  = getMyRole();
+
+  if (DEMO_MODE) return <DemoApp />;
 
   if (authLoading) return (
     <div style={{ position:'fixed', inset:0, background:'#EEEAE3', display:'flex', alignItems:'center', justifyContent:'center' }}>

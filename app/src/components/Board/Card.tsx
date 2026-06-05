@@ -1,16 +1,16 @@
 import type { Entry } from '../../types';
 
 interface Props {
-  entry:          Entry;
-  partner:        string;
-  color:          string;
-  onAck:          (id: string) => void;
-  onComplete:     (id: string) => void;
-  onDelete:       (id: string) => void;
-  onReassign:     (id: string) => void;
-  onOpenDetail:   (id: string) => void;
-  onDragStart:    (e: React.DragEvent, id: string) => void;
-  onDragEnd:      (e: React.DragEvent) => void;
+  entry:        Entry;
+  partner:      string;
+  color:        string;
+  onAck:        (id: string) => void;
+  onComplete:   (id: string) => void;
+  onDelete:     (id: string) => void;
+  onReassign:   (id: string) => void;
+  onOpenDetail: (id: string) => void;
+  onDragStart:  (e: React.DragEvent, id: string) => void;
+  onDragEnd:    (e: React.DragEvent) => void;
 }
 
 function ago(iso: string) {
@@ -43,10 +43,10 @@ function isOverdue(e: Entry) {
 }
 
 export default function Card({ entry: e, partner, color, onAck, onComplete, onDelete, onReassign, onOpenDetail, onDragStart, onDragEnd }: Props) {
-  const isOwn  = e.author === partner;
-  const done   = e.completed;
-  const over   = isOverdue(e);
-  const due    = e.dueDate ? formatDue(e.dueDate) : null;
+  const isOwn = e.author === partner;
+  const done  = e.completed;
+  const over  = isOverdue(e);
+  const due   = e.dueDate ? formatDue(e.dueDate) : null;
 
   return (
     <div
@@ -56,29 +56,40 @@ export default function Card({ entry: e, partner, color, onAck, onComplete, onDe
       onClick={() => onOpenDetail(e.id)}
       className={`card ${done ? 'done' : ''} ${over ? 'overdue' : ''} ${e.acked ? 'acked' : ''}`}
     >
-      <div style={{ display:'flex', gap:8, marginBottom:8 }}>
-        <div style={{ width:20, height:20, borderRadius:'50%', background:color, display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, fontWeight:800, color:'white', flexShrink:0, marginTop:1 }}>
+      {/* Author + text */}
+      <div style={{ display:'flex', gap:8, marginBottom:6 }}>
+        <div style={{ width:20, height:20, borderRadius:'50%', background:color, display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, fontWeight:800, color:'white', flexShrink:0, marginTop:2 }}>
           {e.author[0]}
         </div>
         <div className="card-text">{e.text}</div>
       </div>
 
+      {/* Due / notes */}
       {(due || e.notes) && (
-        <div style={{ paddingLeft:28, marginBottom:4 }}>
+        <div style={{ paddingLeft:28, marginBottom:6 }}>
           {due && <span className={`card-due ${over ? 'overdue' : ''}`}>{due}</span>}
           {e.notes && <div className="card-notes">📝 {e.notes}</div>}
         </div>
       )}
 
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+      {/* Footer */}
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', paddingLeft:28 }}>
         <span style={{ fontSize:10, color:'#D1D5DB' }}>{ago(e.ts)}</span>
-        <div className="card-acts" onClick={ev => ev.stopPropagation()}>
-          <button className="card-btn cmp" title={done ? 'Undo' : 'Mark complete'} onClick={() => onComplete(e.id)}>{done ? '↩' : '✓'}</button>
+
+        <div style={{ display:'flex', gap:2 }} onClick={ev => ev.stopPropagation()}>
+          {/* Complete */}
+          <button className={`card-btn ${done ? 'done-btn' : 'cmp'}`} title={done ? 'Undo' : 'Mark complete'} onClick={() => onComplete(e.id)}>
+            {done ? '↩' : '✓'}
+          </button>
+          {/* Move */}
           <button className="card-btn rsn" title="Move to…" onClick={() => onReassign(e.id)}>⇢</button>
+          {/* Ack */}
           {!isOwn
-            ? <button className="card-btn ack" onClick={() => onAck(e.id)}>{e.acked ? '↩' : '👋'}</button>
-            : e.acked ? <span style={{ fontSize:9, color:'#6EE7B7' }}>✓ seen</span> : null}
-          <button className="card-btn del" onClick={() => onDelete(e.id)}>×</button>
+            ? <button className="card-btn ack" title={e.acked ? 'Un-acknowledge' : 'Acknowledge'} onClick={() => onAck(e.id)}>{e.acked ? '✓' : '👋'}</button>
+            : e.acked ? <span style={{ fontSize:9, color:'#6EE7B7', padding:'2px 4px' }}>seen</span> : null
+          }
+          {/* Delete */}
+          <button className="card-btn del" title="Delete" onClick={() => onDelete(e.id)}>×</button>
         </div>
       </div>
     </div>

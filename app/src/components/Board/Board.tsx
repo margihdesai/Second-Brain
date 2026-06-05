@@ -27,6 +27,7 @@ const EMPTY_HINTS: Record<string, { title: string; hint: string }> = {
 interface Props {
   entries:        Entry[];
   partner:        string;
+  isAdmin:        boolean;
   getMemberColor: (name: string) => string;
   onAck:          (id: string) => void;
   onComplete:     (id: string) => void;
@@ -37,7 +38,7 @@ interface Props {
   onOpenChatFor:  (cat: string) => void;
 }
 
-export default function Board({ entries, partner, getMemberColor, onAck, onComplete, onDelete, onReassign, onOpenDetail, onCategoryMove, onOpenChatFor }: Props) {
+export default function Board({ entries, partner, isAdmin, getMemberColor, onAck, onComplete, onDelete, onReassign, onOpenDetail, onCategoryMove, onOpenChatFor }: Props) {
   const [dragId, setDragId]       = useState<string | null>(null);
   const [overCat, setOverCat]     = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('task');
@@ -112,6 +113,7 @@ export default function Board({ entries, partner, getMemberColor, onAck, onCompl
                       key={entry.id}
                       entry={entry}
                       partner={partner}
+                      isAdmin={isAdmin}
                       color={getMemberColor(entry.author)}
                       onAck={onAck}
                       onComplete={onComplete}

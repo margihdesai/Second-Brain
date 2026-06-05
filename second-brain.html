@@ -868,7 +868,7 @@ function signIn() {
 function signOut() {
   if (entriesRef) { entriesRef.off(); entriesRef = null; }
   household = null; entries = [];
-  firebase.auth().signOut();
+  firebase.auth().signOut().then(() => { window.location.href = './index.html'; });
 }
 
 firebase.auth().onAuthStateChanged(async user => {

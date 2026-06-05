@@ -332,6 +332,7 @@ export default function App() {
         onOpenDetail={id => setDetailId(id)}
         onCategoryMove={moveEntry}
         onOpenChatFor={cat => setChatHintCat(cat)}
+        onAdd={(text, cat) => addEntry(text, cat, partner)}
       />
       <Chat
         partner={partner}

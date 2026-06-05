@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { ref, get, set, remove, onValue, off, push, type DatabaseReference } from 'firebase/database';
+import { ref, get, set, remove, onValue, off, push, runTransaction, type DatabaseReference } from 'firebase/database';
 import { type User } from 'firebase/auth';
 import { db } from '../firebase/config';
 import type { Household, Entry, Member } from '../types';
@@ -54,6 +54,8 @@ export function useHousehold(user: User | null) {
     });
     await set(ref(db, `userHouseholds/${uid}`), hid);
     await set(ref(db, `inviteCodes/${code}`), hid);
+    runTransaction(ref(db, 'publicStats/households'), n => (n || 0) + 1);
+    runTransaction(ref(db, 'publicStats/users'), n => (n || 0) + 1);
     await loadHousehold(hid);
   }
 
@@ -68,6 +70,7 @@ export function useHousehold(user: User | null) {
       displayName, email: user.email, color: MEMBER_COLORS[colorIdx], joinedAt: new Date().toISOString(), role: 'member',
     });
     await set(ref(db, `userHouseholds/${uid}`), hid);
+    runTransaction(ref(db, 'publicStats/users'), n => (n || 0) + 1);
     await loadHousehold(hid);
   }
 
@@ -110,6 +113,7 @@ export function useHousehold(user: User | null) {
     const updated = [e, ...entries];
     setEntries(updated);
     saveEntries(updated);
+    runTransaction(ref(db, 'publicStats/entries'), n => (n || 0) + 1);
     return e;
   }
 

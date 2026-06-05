@@ -990,6 +990,11 @@ function showInvite() {
   const code     = household?.inviteCode || '------';
   _inviteLink    = `https://margihdesai.github.io/Second-Brain/second-brain.html?code=${code}`;
 
+  // Ensure inviteCodes entry exists (self-heal for boards where it was missing)
+  if (household?.inviteCode && household?.id && !demoMode) {
+    db.ref(`inviteCodes/${household.inviteCode}`).set(household.id).catch(() => {});
+  }
+
   document.getElementById('invite-body').innerHTML = `
     <p style="font-size:13px;color:#6B7280;margin-bottom:8px;">Share this code with anyone you want to invite:</p>
     <div class="invite-code">${code}</div>

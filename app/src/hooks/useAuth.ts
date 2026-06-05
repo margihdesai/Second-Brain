@@ -15,7 +15,7 @@ export function useAuth() {
   }, []);
 
   const signIn = () => signInWithPopup(auth, new GoogleAuthProvider());
-  const signOut = () => fbSignOut(auth);
+  const signOut = () => fbSignOut(auth).then(() => { window.location.href = '/Second-Brain/'; });
 
   return { user, loading, signIn, signOut };
 }

@@ -947,6 +947,7 @@ async function doCreate() {
       members: { [uid]: { displayName: myName, email: currentUser.email, color: MEMBER_COLORS[0], joinedAt: new Date().toISOString() } }
     });
     await db.ref(`userHouseholds/${uid}`).set(hid);
+    await db.ref(`inviteCodes/${code}`).set(hid);
     try { db.ref('publicStats/households').transaction(n => (n||0) + 1); } catch(e) {}
     await loadHousehold(hid);
   } catch(e) { document.getElementById('setup-error').textContent = 'Error: ' + e.message; }
@@ -959,12 +960,12 @@ async function doJoin() {
   if (!code || !myName) { errEl.textContent = 'Please fill in all fields.'; return; }
   errEl.textContent = 'Looking up code…';
   try {
-    const snap = await db.ref('households').orderByChild('inviteCode').equalTo(code).once('value');
-    if (!snap.exists()) { errEl.textContent = 'Invalid invite code. Check and try again.'; return; }
-    const hid     = Object.keys(snap.val())[0];
-    const members = snap.val()[hid].members || {};
-    const colorIdx = Math.min(Object.keys(members).length, MEMBER_COLORS.length - 1);
+    const codeSnap = await db.ref(`inviteCodes/${code}`).once('value');
+    if (!codeSnap.exists()) { errEl.textContent = 'Invalid invite code. Check and try again.'; return; }
+    const hid = codeSnap.val();
     const uid = currentUser.uid;
+    const colorSnap = await db.ref(`households/${hid}/memberCount`).once('value');
+    const colorIdx = Math.min((colorSnap.val() || 1), MEMBER_COLORS.length - 1);
     await db.ref(`households/${hid}/members/${uid}`).set({
       displayName: myName, email: currentUser.email, color: MEMBER_COLORS[colorIdx], joinedAt: new Date().toISOString()
     });

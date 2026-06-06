@@ -379,7 +379,7 @@
     messagingSenderId: "192541189972",
     appId: "1:192541189972:web:3b216087a61b5bf6a90ac1"
   });
-  const fmt = n => n >= 1000 ? (n/1000).toFixed(1)+'k' : (n||'—');
+  const fmt = n => (n == null || n === undefined) ? '—' : n >= 1000 ? (n/1000).toFixed(1)+'k' : n;
   firebase.database().ref('publicStats').on('value', snap => {
     const s = snap.val() || {};
     document.getElementById('stat-households').textContent = fmt(s.households);

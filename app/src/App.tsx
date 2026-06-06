@@ -286,7 +286,7 @@ export default function App() {
   function InviteModal() {
     repairInviteCode();
     const code          = household!.inviteCode;
-    const link          = `https://margihdesai.github.io/Second-Brain/second-brain.html?code=${code}`;
+    const link          = `https://margihdesai.github.io/Second-Brain/app/?code=${code}`;
     const memberEntries = Object.entries(household!.members);
     const isAdmin       = myRole === 'admin';
     return (

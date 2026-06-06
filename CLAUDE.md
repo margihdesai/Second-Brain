@@ -1,40 +1,75 @@
 # Second Brain — Claude Code Context
 
 ## What this is
-A shared household kanban board built as a single HTML file. Couples or families can sign in with Google, create a board, invite members via a 6-letter code, and collaboratively manage tasks, ideas, worries, purchases, trips, and life admin. Data syncs in real-time across all devices.
+A shared household kanban board. Couples or families sign in with Google, create a board, invite members via a 6-letter code, and collaboratively manage tasks, ideas, worries, purchases, trips, and life admin. Data syncs in real-time across all devices.
+
+## Repo structure
+```
+/                     → GitHub Pages root
+  index.html          → Public landing page (plain HTML/CSS/JS)
+  story.html          → Product story page (plain HTML/CSS/JS)
+  LICENSE             → MIT
+  README.md
+  CLAUDE.md           → This file
+  app/                → React app (Vite + TypeScript)
+    src/
+      App.tsx         → Root component, all modals, demo mode
+      hooks/
+        useAuth.ts    → Firebase Auth (Google Sign-In)
+        useHousehold.ts → Board data, CRUD, publicStats tracking
+      components/
+        Auth/LoginScreen.tsx
+        Setup/SetupScreen.tsx
+        Header/Header.tsx
+        Board/Board.tsx, Card.tsx, BoardSkeleton.tsx
+        Chat/Chat.tsx
+      firebase/config.ts  → Firebase init (modular SDK)
+      types/index.ts      → Shared TypeScript types
+      utils/detectCat.ts  → Score-based NLP categorisation
+```
 
 ## Tech stack
-- **Single file app** — `index.html` and `second-brain.html` are identical; both are committed so GitHub Pages serves `index.html` at the root URL
-- **Firebase Realtime Database** — all board data, real-time sync
-- **Firebase Authentication** — Google Sign-In, open to any Google account
-- **GitHub Pages** — static hosting at `https://margihdesai.github.io/Second-Brain/`
-- **No build tools** — plain HTML/CSS/JS, Firebase loaded via CDN
+- **Landing page / story** — plain HTML/CSS/JS, no framework, no build step
+- **App** — React + TypeScript + Vite, in `/app/`
+- **Firebase Realtime Database** — real-time sync (modular SDK v10)
+- **Firebase Authentication** — Google Sign-In (`signInWithPopup`)
+- **GitHub Pages** — static hosting
+- **No backend** — fully client-side + Firebase
 
 ## Firebase project
 - **Project ID:** `second-brain-1619f`
 - **Database URL:** `https://second-brain-1619f-default-rtdb.firebaseio.com`
 - **Auth domain:** `second-brain-1619f.firebaseapp.com`
 - **Authorised domain for Google Sign-In:** `margihdesai.github.io`
-- **Firebase SDK version:** `10.7.0` (compat mode, loaded via CDN)
+- **Firebase SDK version:** `10.7.0` (modular, imported via npm in the React app)
+
+## URLs
+- **Landing page:** `https://margihdesai.github.io/Second-Brain/`
+- **Story page:** `https://margihdesai.github.io/Second-Brain/story.html`
+- **App:** `https://margihdesai.github.io/Second-Brain/app/`
+- **Demo:** `https://margihdesai.github.io/Second-Brain/app/?demo=true`
+- **Join via invite:** `https://margihdesai.github.io/Second-Brain/app/?code=XXXXXX`
 
 ## Firebase data structure
 ```
 /userHouseholds/{uid}                    → householdId (string)
+/inviteCodes/{code}                      → householdId (string)
 
 /households/{householdId}/
-  name: string                           e.g. "Margi & Samarth"
-  inviteCode: string                     6-char uppercase, e.g. "AB12CD"
+  name: string
+  inviteCode: string                     6-char uppercase
   createdAt: ISO string
   createdBy: uid
   members/{uid}/
     displayName: string
     email: string
-    color: string                        hex, assigned from MEMBER_COLORS array
+    color: string                        hex, from MEMBER_COLORS array
     joinedAt: ISO string
+    role: 'admin' | 'member'
   entries/{entryId}/
     id: string
     text: string
-    author: string                       displayName of who added it
+    author: string                       displayName
     category: string                     task|worry|idea|purchase|trip|life-admin|other
     ts: ISO string
     acked: boolean
@@ -42,80 +77,88 @@ A shared household kanban board built as a single HTML file. Couples or families
     completed: boolean
     completedBy: string|null
     completedAt: ISO string|null
+    dueDate: string|null                 YYYY-MM-DD
+    notes: string
+
+/publicStats/
+  households: number                     incremented on createBoard
+  users: number                          incremented on createBoard + joinBoard
+  entries: number                        incremented on addEntry
+
+/analytics/
+  users/{uid}/                           lastSeen, firstSeen, email, displayName
+  events/{pushId}/                       type, uid, ts
 ```
 
-## Firebase database rules
+## Firebase database rules (currently published)
 ```json
 {
   "rules": {
     "userHouseholds": {
-      "$uid": {
-        ".read": "$uid === auth.uid",
-        ".write": "$uid === auth.uid"
-      }
+      "$uid": { ".read": "$uid === auth.uid", ".write": "$uid === auth.uid" }
+    },
+    "inviteCodes": {
+      ".read": "auth != null",
+      ".write": "auth != null"
     },
     "households": {
-      ".indexOn": ["inviteCode"],
       "$hid": {
         ".read": "auth != null && data.child('members').child(auth.uid).exists()",
         ".write": "auth != null && (!data.exists() || data.child('members').child(auth.uid).exists())"
       }
-    }
+    },
+    "publicStats": { ".read": true, ".write": "auth != null" },
+    "analytics":   { ".read": "auth != null", ".write": "auth != null" }
   }
 }
 ```
 
-## Multi-household architecture
-- Any Google user can sign in — no email whitelist
-- On first sign-in, user is shown a setup screen: **Create board** or **Join board**
-- **Create:** enters board name + display name → Firebase generates a household node + random 6-char invite code → user is stored as first member
-- **Join:** enters invite code + display name → looked up via `orderByChild('inviteCode')` → user added as member
-- `userHouseholds/{uid}` maps each user to their household ID
-- `entriesRef` is set dynamically after household is loaded — it points to `/households/{hid}/entries`
-- Member colours are assigned from `MEMBER_COLORS` array in order of joining
+## Key architecture decisions
+- **React + Vite** — migrated from single HTML file; app lives in `/app/`, landing and story pages remain plain HTML
+- **Modular Firebase SDK** — `import { ref, get, set, ... } from 'firebase/database'` (not compat)
+- **`signInWithPopup`** — redirect failed silently in earlier version
+- **Score-based NLP** — `utils/detectCat.ts` uses keyword arrays per category, picks highest score
+- **`completed` flag** — marking complete sets `completed: true`, preserves original category
+- **`inviteCodes/{code}` path** — separate lookup path for fast join-by-code without scanning all households
+- **`publicStats` transactions** — `runTransaction` for safe concurrent counter increments
+- **Demo mode** — `?demo=true` renders `DemoApp` component with hardcoded entries, no Firebase auth
 
-## Key design decisions made
-- **Single HTML file** — no framework, no build step, easy to host anywhere
-- **Firebase compat SDK** — used instead of modular SDK so `firebase.xxx()` works directly in script tags without imports
-- **`signInWithPopup`** — chosen over `signInWithRedirect` after redirect failed silently (Firebase init was running after auth code)
-- **Score-based categorisation** — chat uses keyword arrays per category, counts matches, picks highest score. Avoids first-match bias of single regex
-- **`completed` flag, not category change** — marking complete adds `completed: true` to the entry rather than moving it to a different category, so the original category is preserved
-- **No seed entries** — new households start with an empty board (seed data was removed when multi-household was added)
-- **`entriesRef.off()` before reassigning** — prevents duplicate listeners if a user somehow triggers `loadHousehold` twice
+## Demo mode
+`DemoApp` in `App.tsx` is rendered when `?demo=true` is in the URL. It:
+- Skips auth entirely
+- Uses hardcoded `DEMO_ENTRIES` and `DEMO_HOUSEHOLD`
+- Shows a banner with ← Home and Create your own board →
+- All interactions (add, complete, delete, reassign) work locally via React state only
 
-## Features implemented
+## Features
 - Google Sign-In (any Google account)
-- Multi-household with invite codes
+- Multi-household with invite codes + shareable `?code=` links
 - Real-time sync via Firebase Realtime Database
-- Kanban board with 7 columns: Tasks ✅, Worries 💭, Ideas 💡, Purchases 🛒, Trips ✈️, Life Admin 📋, Other 📝, Completed ☑️
-- Chat interface with score-based NLP categorisation
+- Kanban board: Tasks ✅, Worries 💭, Ideas 💡, Purchases 🛒, Trips ✈️, Life Admin 📋, Other 📝, Completed ☑️
+- Chat with score-based NLP categorisation
+- Voice input (Web Speech API)
 - Drag and drop between columns
 - Acknowledge (👋) cards from other members
-- Mark complete (✓) — moves card to Completed column with strikethrough
+- Mark complete (✓)
+- Due dates + overdue highlighting
+- Card detail modal with notes
 - Weekly digest modal
-- Mobile-friendly layout with category tab bar (≤640px)
-- 🔗 Invite button in header shows invite code and member list
-
-## Chat commands supported
-| Input | Action |
-|---|---|
-| "I need to call the dentist" | → Tasks ✅ |
-| "undo" / "scratch that" | Removes last entry you added |
-| "summary" / "show everything" | Count per category |
-| "how many items?" | Total + unseen count |
-| "show [member name]'s" | Lists what that member added |
-| "show my tasks" | Lists task cards |
-| "thanks" | Friendly response |
+- Insights modal (completion rate, overdue, by category, by member)
+- Email invite via mailto:
+- Admin board actions (leave, delete, promote)
+- Live stats on landing page (publicStats, real-time)
+- Founder analytics dashboard (margihdesai@gmail.com only)
 
 ## GitHub & deployment
 - **Repo:** `https://github.com/margihdesai/Second-Brain`
-- **Hosted at:** `https://margihdesai.github.io/Second-Brain/`
-- **Deploy:** push to `main` branch → GitHub Pages auto-deploys in ~1 min
-- `index.html` and `second-brain.html` must always be kept in sync (copy one to the other before committing)
-- GitHub PAT stored locally — not committed
+- **Deploy:** push to `main` → GitHub Pages auto-deploys landing/story pages in ~1 min
+- **React app:** must be built (`npm run build` in `/app/`) and output committed to deploy app changes
+- **GitHub PAT** — stored locally, never committed. Set on remote URL temporarily for push, then removed immediately
+- **Admin email:** `margihdesai@gmail.com` — only this account sees the founder dashboard
 
 ## What's planned / not yet built
 - Custom domain
-- Push notifications when a member adds something
-- Claude API integration for smarter chat categorisation (deferred — requires API key proxy)
-- Mobile: swipe gestures between tabs
+- Push notifications
+- Claude API for smarter chat (needs API key proxy — Firebase Cloud Functions)
+- WhatsApp integration (needs Meta Business API + Cloud Functions webhook)
+- Mobile swipe gestures

@@ -1,9 +1,9 @@
 const CATS_KEYS = [
-  { id:'task',       keys:['need to','should','must','have to','remember to','todo','call','fix','schedule','book','remind','pick up','finish','complete','send','pay','submit'] },
+  { id:'task',       keys:['need to','should','must','have to','remember to','todo','call','fix','schedule','book','remind','pick up','finish','complete','send','pay','submit','invite','arrange','organise','organize','confirm','contact','reach out','set up','sort out','clean','prepare','check on','make reservation','reserve'] },
   { id:'worry',      keys:['worried','worry','anxious','anxiety','stressed','stress','scared','nervous','fear','overwhelmed','concerned','dread','uneasy','unsure','panic','bothering me'] },
   { id:'idea',       keys:['idea','what if','maybe we','could we','would be nice','imagine','how about','what about','let\'s try','suggestion','experiment','thinking of'] },
   { id:'purchase',   keys:['buy','order','purchase','need to get','looking for','amazon','shop','groceries','stock up','deal','sale','delivery'] },
-  { id:'trip',       keys:['trip','travel','visit','vacation','flight','hotel','airbnb','passport','destination','holiday','road trip','getaway'] },
+  { id:'trip',       keys:['trip','travel','visit','vacation','flight','hotel','airbnb','passport','destination','holiday','road trip','getaway','ticket','tickets','fly','flying','itinerary','check-in','airport','train','cruise'] },
   { id:'life-admin', keys:['insurance','taxes','appointment','doctor','dentist','vet','bank','renew','deadline','budget','bill','lease','license','utilities','subscription'] },
 ];
 

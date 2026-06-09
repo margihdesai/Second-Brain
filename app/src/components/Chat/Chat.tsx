@@ -23,6 +23,15 @@ interface Props {
   onDelete:   (id: string) => void;
 }
 
+function cleanText(raw: string): string {
+  const cleaned = raw
+    .trim()
+    .replace(/^(can you |please |could you |would you )?(add |put |include |log |save )(a |an |the )?/i, '')
+    .replace(/^(remind me to |don't forget to |we need to |we should |make sure (we |to |i )?|i want to |i'd like to |let's )/i, '')
+    .trim();
+  return cleaned || raw.trim();
+}
+
 export default function Chat({ partner, entries, hintCat, forceOpen, onAdd, onDelete }: Props) {
   const [open, setOpen]           = useState(false);
   const [msgs, setMsgs]           = useState<Msg[]>([]);
@@ -63,10 +72,12 @@ export default function Chat({ partner, entries, hintCat, forceOpen, onAdd, onDe
       return;
     }
 
+    const entry = cleanText(text);
+
     // When a column header hinted a category, skip AI and add directly
     if (activeCat) {
       const cat = activeCat; setActiveCat(null);
-      onAdd(text, cat);
+      onAdd(entry, cat);
       addBot(BOT_FALLBACK[cat] ?? BOT_FALLBACK.other);
       return;
     }
@@ -79,10 +90,10 @@ export default function Chat({ partner, entries, hintCat, forceOpen, onAdd, onDe
       entries: entries.map(e => ({ text: e.text, category: e.category, author: e.author, completed: e.completed })),
     };
 
-    const { intent, category: cat, reply } = await detectCatAI(text, context);
+    const { intent, category: cat, reply } = await detectCatAI(entry, context);
 
     if (intent === 'add') {
-      onAdd(text, cat);
+      onAdd(entry, cat);
       addBot(reply || (BOT_FALLBACK[cat] ?? BOT_FALLBACK.other));
     } else {
       // 'query' or 'chat' — just reply, nothing added to board

@@ -14,6 +14,17 @@ const CATS: Category[] = [
   { id:'completed',  e:'☑️',  l:'Completed' },
 ];
 
+const CAT_DEFS: Record<string, { desc: string; examples: string[] }> = {
+  task:       { desc: 'Things you need to do — action items with a clear outcome.', examples: ['Call the dentist', 'Book car service', 'Email the landlord'] },
+  worry:      { desc: 'Things weighing on your mind. Capture it so you can let it go.', examples: ["What if we can't afford the holiday?", "Stressed about the lease renewal"] },
+  idea:       { desc: 'Things to explore or try someday. No pressure, just capture it.', examples: ['Weekend trip to the coast', 'Start a savings jar', 'Redesign the living room'] },
+  purchase:   { desc: 'Things to buy, order, or pick up.', examples: ['Oat milk and eggs', 'New running shoes', 'Replacement kitchen bulbs'] },
+  trip:       { desc: 'Travel plans, bookings, and anything trip-related.', examples: ['Book flights to New York', 'Research hotels in Rome', 'Renew passport'] },
+  'life-admin':{ desc: 'Background tasks that keep life running — often time-sensitive.', examples: ['Renew car insurance', 'File tax return', 'Cancel unused subscription'] },
+  other:      { desc: "Anything that doesn't fit neatly elsewhere.", examples: ['Movie recommendation', 'Book from Priya', 'Random thought'] },
+  completed:  { desc: 'Items you\'ve marked as done. They live here for reference.', examples: [] },
+};
+
 const EMPTY_HINTS: Record<string, { title: string; hint: string }> = {
   task:       { title: 'No tasks yet',        hint: 'What needs to get done?' },
   worry:      { title: 'Nothing on your mind', hint: 'Share what\'s bothering you' },
@@ -46,7 +57,8 @@ export default function Board({ entries, partner, isAdmin, getMemberColor, onAck
   const [activeTab, setActiveTab] = useState('task');
   const [quickText, setQuickText] = useState('');
   const [addedCat, setAddedCat]   = useState<string | null>(null);
-  const [openCats, setOpenCats] = useState<Set<string>>(new Set(CATS.map(c => c.id)));
+  const [openCats, setOpenCats]   = useState<Set<string>>(new Set(CATS.map(c => c.id)));
+  const [tooltipCat, setTooltipCat] = useState<string | null>(null);
   const initializedRef = useRef(false);
 
   useEffect(() => {
@@ -151,6 +163,22 @@ export default function Board({ entries, partner, isAdmin, getMemberColor, onAck
                 <span className="col-emoji">{cat.e}</span>
                 <span className="col-label">{cat.l}</span>
                 <span className="col-count">{cards.length}</span>
+                <span
+                  style={{ position:'relative', marginLeft:2, flexShrink:0 }}
+                  onMouseEnter={() => setTooltipCat(cat.id)}
+                  onMouseLeave={() => setTooltipCat(null)}
+                  onClick={e => { e.stopPropagation(); setTooltipCat(tooltipCat === cat.id ? null : cat.id); }}
+                >
+                  <span style={{ fontSize:11, opacity:0.45, cursor:'help', userSelect:'none' }}>ℹ</span>
+                  {tooltipCat === cat.id && (
+                    <div style={{ position:'absolute', top:'calc(100% + 6px)', left:0, zIndex:300, background:'#1E293B', color:'white', borderRadius:10, padding:'10px 14px', width:230, fontSize:12, lineHeight:1.6, boxShadow:'0 4px 20px rgba(0,0,0,0.25)', pointerEvents:'none' }}>
+                      <div style={{ fontWeight:600, marginBottom:5 }}>{CAT_DEFS[cat.id]?.desc}</div>
+                      {CAT_DEFS[cat.id]?.examples.length > 0 && (
+                        <div style={{ opacity:0.7, fontSize:11 }}>e.g. {CAT_DEFS[cat.id].examples.join(' · ')}</div>
+                      )}
+                    </div>
+                  )}
+                </span>
                 {cat.id !== 'completed' && (
                   <button className="col-plus" onClick={e => { e.stopPropagation(); onOpenChatFor(cat.id); }}>+</button>
                 )}

@@ -188,6 +188,46 @@
     .future-card h4 { font-size: 13.5px; font-weight: 700; margin-bottom: 6px; }
     .future-card p { font-size: 12.5px; color: var(--muted); line-height: 1.55; }
 
+    /* ─── AI PM LEARNINGS ───────────────────────── */
+    .pm-compare {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 44px;
+    }
+    .pm-col {
+      border-radius: 16px; padding: 28px;
+    }
+    .pm-col-label {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.1em;
+      text-transform: uppercase; margin-bottom: 18px;
+    }
+    .pm-col ul { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+    .pm-col ul li { font-size: 14px; line-height: 1.55; display: flex; gap: 10px; align-items: flex-start; }
+    .pm-col ul li span:first-child { flex-shrink: 0; margin-top: 1px; }
+    .pm-traditional { background: white; border: 1px solid var(--border); }
+    .pm-traditional .pm-col-label { color: #9CA3AF; }
+    .pm-traditional ul li { color: #374151; }
+    .pm-ai { background: var(--dark); color: white; }
+    .pm-ai .pm-col-label { color: var(--coral); }
+    .pm-ai ul li { color: rgba(255,255,255,0.85); }
+
+    .learn-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin-bottom: 40px; }
+    .learn-card {
+      background: white; border-radius: 14px; padding: 24px 22px;
+      border: 1px solid var(--border);
+    }
+    .learn-card-icon { font-size: 24px; margin-bottom: 12px; }
+    .learn-card h4 { font-size: 14.5px; font-weight: 800; margin-bottom: 8px; letter-spacing: -0.01em; }
+    .learn-card p { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+    .pitfall-list { display: flex; flex-direction: column; gap: 12px; }
+    .pitfall-row {
+      background: #FFF8F6; border: 1px solid #F9D0C4;
+      border-radius: 12px; padding: 18px 20px;
+      display: grid; grid-template-columns: 28px 1fr; gap: 12px; align-items: start;
+    }
+    .pitfall-row .pitfall-icon { font-size: 16px; margin-top: 1px; }
+    .pitfall-row h5 { font-size: 13.5px; font-weight: 700; color: var(--dark); margin-bottom: 4px; }
+    .pitfall-row p { font-size: 13px; color: var(--muted); line-height: 1.55; }
+
     /* ─── FOOTER CTA ─────────────────────────────── */
     .story-cta {
       text-align: center; padding: 80px 24px;
@@ -228,6 +268,7 @@
       .pos-row { grid-template-columns: 1fr 1fr; }
       .pos-desc { display: none; }
       .nav-links { display: none; }
+      .pm-compare { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -247,8 +288,8 @@
 <!-- ─── HERO ──────────────────────────────────────── -->
 <div class="story-hero">
   <div class="eyebrow">Product Story</div>
-  <h1>Built by a PM,<br>powered by <span>AI</span></h1>
-  <p>The vision, the decisions, the tradeoffs, and the opportunity behind Second Brain — told honestly, from idea to live product.</p>
+  <h1>A PM's experiment<br>with <span>AI-assisted</span> building</h1>
+  <p>How a product manager with no engineering team shipped a real, multi-user product in six weeks — and what that revealed about the future of product work.</p>
 </div>
 
 <hr class="divider">
@@ -518,9 +559,162 @@
 
 <hr class="divider">
 
+<!-- ─── AI PM LEARNINGS ─────────────────────────────── -->
+<section class="section">
+  <div class="section-eyebrow">05 — The Experiment</div>
+  <h2>What building with AI taught me about product management</h2>
+  <p class="section-lead">I've worked as a PM long enough to know what the traditional process feels like. This was different in ways I didn't expect — and in some ways, harder.</p>
+
+  <div class="pm-compare">
+    <div class="pm-col pm-traditional">
+      <div class="pm-col-label">Traditional PM</div>
+      <ul>
+        <li><span>📝</span><span>Write a spec. Hope the engineers interpret it the way you meant.</span></li>
+        <li><span>⏳</span><span>Wait days or weeks for a build. Discover the gap between vision and reality at sprint review.</span></li>
+        <li><span>🔄</span><span>Iterate through formal sprint cycles. Each change takes a ticket, a standup, a PR review.</span></li>
+        <li><span>🧑‍💻</span><span>Lean on engineering to translate product instincts into working software.</span></li>
+        <li><span>📊</span><span>Measure success months after launch when enough usage data exists.</span></li>
+      </ul>
+    </div>
+    <div class="pm-col pm-ai">
+      <div class="pm-col-label">AI-Assisted PM</div>
+      <ul>
+        <li><span>💬</span><span>Describe the experience you want. The AI drafts it. You review, react, refine — in the same hour.</span></li>
+        <li><span>⚡</span><span>Ideas go from thought to deployed feature in hours. The feedback loop is measured in minutes, not weeks.</span></li>
+        <li><span>🔁</span><span>Iterate freely. The cost of trying something is nearly zero — so you try more, discard faster, ship better.</span></li>
+        <li><span>🧠</span><span>You ARE the engineer. You have to read, review, and own every line — including the ones that look right but aren't.</span></li>
+        <li><span>🚀</span><span>Ship to real users immediately. Real feedback on day one, not month six.</span></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="learn-grid">
+    <div class="learn-card">
+      <div class="learn-card-icon">⚡</div>
+      <h4>The feedback loop compressed from weeks to hours</h4>
+      <p>In a traditional PM role, you write a spec, wait for a sprint, and see the result two weeks later. With AI, I could describe a feature, see it working, use it, break it, and redesign it — all in an afternoon. That speed changes how you think about product decisions. You stop over-planning and start over-testing.</p>
+    </div>
+    <div class="learn-card">
+      <div class="learn-card-icon">🧭</div>
+      <h4>Your product instincts matter more, not less</h4>
+      <p>AI can generate code, suggest architecture, and propose UX patterns — but it cannot feel the friction. It cannot tell you that a feature is technically correct but emotionally wrong. The PM skill of knowing what users actually need, and translating that into precise language, became the most valuable thing I brought to every session.</p>
+    </div>
+    <div class="learn-card">
+      <div class="learn-card-icon">🎯</div>
+      <h4>Prompt quality is the new requirements doc</h4>
+      <p>The clearer and more specific your prompt, the better the output. Vague specs produce vague code — same as they always did with engineering teams, just faster. The discipline of writing a crisp, unambiguous description of what you want turned out to be exactly the skill that separates good PMs from great ones.</p>
+    </div>
+  </div>
+
+  <div class="section-eyebrow" style="margin-bottom:16px;">Pitfalls I ran into</div>
+  <div class="pitfall-list">
+    <div class="pitfall-row">
+      <div class="pitfall-icon">🌀</div>
+      <div>
+        <h5>AI hallucinations — confident, wrong, and convincing</h5>
+        <p>The AI would occasionally generate code that looked completely correct but contained subtle bugs — wrong Firebase paths, non-existent SDK methods, logic that broke edge cases. The danger isn't that AI makes obvious mistakes. It's that it makes <em>plausible</em> mistakes. You have to review everything with the same scrutiny you'd apply to a junior engineer's first PR. Trust but verify — always.</p>
+      </div>
+    </div>
+    <div class="pitfall-row">
+      <div class="pitfall-icon">📉</div>
+      <div>
+        <h5>Context drift over long sessions</h5>
+        <p>As conversations grew long, the AI would start losing track of earlier decisions — suggesting approaches that contradicted things we'd already resolved, or forgetting the architecture we'd agreed on. I learned to keep a running CLAUDE.md file (a context document for the AI) that summarised the project state, key decisions, and constraints. Without it, sessions in week 5 felt like starting over.</p>
+      </div>
+    </div>
+    <div class="pitfall-row">
+      <div class="pitfall-icon">⚠️</div>
+      <div>
+        <h5>Fast iteration can outrun your judgment</h5>
+        <p>When you can ship in hours, there's a temptation to keep shipping. I added features I later removed. I rebuilt the same flow three times before realising the original was better. Speed is a multiplier — it multiplies good decisions and bad ones equally. The PM discipline of slowing down to ask "should we?" before "can we?" matters even more when the answer to "can we?" is almost always yes.</p>
+      </div>
+    </div>
+    <div class="pitfall-row">
+      <div class="pitfall-icon">🔧</div>
+      <div>
+        <h5>The AI rewrote the architecture mid-project</h5>
+        <p>Partway through, the AI suggested migrating from a single HTML file to React + TypeScript + Vite — a legitimate upgrade, but it temporarily broke the deployed app and required re-implementing features I'd already shipped. AI will propose the "right" technical choice without fully accounting for the cost of migration. As the PM, you have to weigh that cost yourself. AI optimises for clean code; you have to optimise for the whole product.</p>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+<hr class="divider">
+
+<!-- ─── WHY IT'S DIFFERENT ──────────────────────────── -->
+<section class="section">
+  <div class="section-eyebrow">06 — Why it's different</div>
+  <h2>What no other app does</h2>
+  <p class="section-lead">The household management category has plenty of tools. What's missing is the right combination — built around how households actually think and communicate, not how project teams work.</p>
+
+  <div class="section-eyebrow" style="margin-bottom:14px;">The three pain points it solves</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin-bottom:48px;">
+    <div style="background:white;border-radius:14px;padding:24px;border:1px solid var(--border);">
+      <div style="font-size:24px;margin-bottom:10px;">🧠</div>
+      <h4 style="font-size:14.5px;font-weight:800;margin-bottom:8px;letter-spacing:-0.01em;">The mental load is invisible and asymmetric</h4>
+      <p style="font-size:13px;color:var(--muted);line-height:1.6;">One person is mentally tracking everything — appointments, renewals, things said in passing. The other person isn't lazy; they just don't have visibility. No existing app addresses this as its primary design goal. They all assume both people are already engaged.</p>
+    </div>
+    <div style="background:white;border-radius:14px;padding:24px;border:1px solid var(--border);">
+      <div style="font-size:24px;margin-bottom:10px;">✍️</div>
+      <h4 style="font-size:14.5px;font-weight:800;margin-bottom:8px;letter-spacing:-0.01em;">Every other tool makes you decide before you add</h4>
+      <p style="font-size:13px;color:var(--muted);line-height:1.6;">Open Todoist → choose project → type. Open Notion → navigate → type. WhatsApp → send → watch it disappear in three days of messages. Second Brain: just type anything naturally — it figures out where it goes.</p>
+    </div>
+    <div style="background:white;border-radius:14px;padding:24px;border:1px solid var(--border);">
+      <div style="font-size:24px;margin-bottom:10px;">💭</div>
+      <h4 style="font-size:14.5px;font-weight:800;margin-bottom:8px;letter-spacing:-0.01em;">Emotional items have no home anywhere</h4>
+      <p style="font-size:13px;color:var(--muted);line-height:1.6;">Every task manager is built around action items. But a huge part of household mental load is emotional — worries, anxieties, "I've been thinking about this and I don't know what to do with it." No mainstream app acknowledges this exists.</p>
+    </div>
+  </div>
+
+  <div class="section-eyebrow" style="margin-bottom:14px;">The combination no one else has built</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(195px,1fr));gap:12px;margin-bottom:36px;">
+    <div style="background:var(--dark);color:white;border-radius:14px;padding:20px;">
+      <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--coral);margin-bottom:10px;">01</div>
+      <h5 style="font-size:14px;font-weight:800;margin-bottom:6px;">Shared-first, not personal-first</h5>
+      <p style="font-size:12.5px;color:rgba(255,255,255,0.7);line-height:1.55;">Designed from the start for two or more people with equal visibility. Not a personal app with a "share" button tacked on.</p>
+    </div>
+    <div style="background:white;border-radius:14px;padding:20px;border:1px solid var(--border);">
+      <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--coral);margin-bottom:10px;">02</div>
+      <h5 style="font-size:14px;font-weight:800;margin-bottom:6px;">Natural language → auto-categorisation</h5>
+      <p style="font-size:12.5px;color:var(--muted);line-height:1.55;">Type anything naturally. Don't decide where it goes — the app decides. Closer to talking to someone than filling in a form.</p>
+    </div>
+    <div style="background:white;border-radius:14px;padding:20px;border:1px solid var(--border);">
+      <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--coral);margin-bottom:10px;">03</div>
+      <h5 style="font-size:14px;font-weight:800;margin-bottom:6px;">Kanban visual output</h5>
+      <p style="font-size:12.5px;color:var(--muted);line-height:1.55;">Everything organises into a shared board you can both scan in 5 seconds. Not a list, not a calendar — a board that shows the whole picture.</p>
+    </div>
+    <div style="background:white;border-radius:14px;padding:20px;border:1px solid var(--border);">
+      <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--coral);margin-bottom:10px;">04</div>
+      <h5 style="font-size:14px;font-weight:800;margin-bottom:6px;">Categories that match real life</h5>
+      <p style="font-size:12.5px;color:var(--muted);line-height:1.55;">Tasks, Worries, Ideas, Purchases, Trips, Life Admin. Not "To Do / Doing / Done." Categories that map to how households actually think.</p>
+    </div>
+    <div style="background:white;border-radius:14px;padding:20px;border:1px solid var(--border);">
+      <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--coral);margin-bottom:10px;">05</div>
+      <h5 style="font-size:14px;font-weight:800;margin-bottom:6px;">Real-time sync, zero setup</h5>
+      <p style="font-size:12.5px;color:var(--muted);line-height:1.55;">Sign in with Google, share a link. No app to download, no workspace to configure. Everything syncs the moment it's typed.</p>
+    </div>
+  </div>
+
+  <div style="background:var(--dark);color:white;border-radius:16px;padding:28px 30px;margin-bottom:32px;display:grid;grid-template-columns:auto 1fr;gap:20px;align-items:start;">
+    <div style="font-size:36px;line-height:1;">💭</div>
+    <div>
+      <h4 style="font-size:15px;font-weight:800;margin-bottom:8px;">The Worries column — genuinely novel</h4>
+      <p style="font-size:13.5px;color:rgba(255,255,255,0.75);line-height:1.65;">Every task manager in existence is built around action items. But a huge part of household mental load is emotional — worries, anxieties, things you're carrying but don't know what to do with yet. There is no mainstream app with a Worries column. That category alone is genuinely novel. It validates emotional load as a real thing worth sharing with a partner — not something to suppress silently until it becomes an argument.</p>
+    </div>
+  </div>
+
+  <div style="background:#FFF8F6;border-left:4px solid var(--coral);border-radius:0 12px 12px 0;padding:22px 26px;">
+    <p style="font-size:15px;font-weight:700;color:var(--dark);line-height:1.65;font-style:italic;">"WhatsApp has the friction right but the organisation wrong. Todoist has the organisation right but the household wrong. Notion has the power right but the simplicity wrong. Second Brain is the first tool designed around how households actually think — not how project teams work."</p>
+  </div>
+
+</section>
+
+<hr class="divider">
+
 <!-- ─── OPPORTUNITY ─────────────────────────────────── -->
 <section class="section">
-  <div class="section-eyebrow">05 — Market</div>
+  <div class="section-eyebrow">07 — Market</div>
   <h2>The opportunity</h2>
   <p class="section-lead">The household management category is large, underserved, and ripe for AI disruption.</p>
 
@@ -544,35 +738,55 @@
   </div>
 
   <div class="positioning">
-    <h3>Competitive positioning</h3>
+    <h3>Where every competitor falls short</h3>
     <div class="pos-row" style="border-bottom:1px solid #E5E7EB;padding-bottom:8px;margin-bottom:4px;">
       <span class="pos-name" style="color:#9CA3AF;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;">Product</span>
-      <span class="pos-desc" style="color:#9CA3AF;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;">Limitation</span>
+      <span class="pos-desc" style="color:#9CA3AF;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;">What it misses</span>
       <span class="pos-fit" style="color:#9CA3AF;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;">Fit</span>
     </div>
     <div class="pos-row">
       <span class="pos-name">Todoist</span>
-      <span class="pos-desc">Personal, not built for real-time sharing with a household</span>
+      <span class="pos-desc">Personal-first — sharing is bolted on. No NLP. No emotional categories. You still have to choose the project manually.</span>
       <span class="pos-fit bad">Partial</span>
     </div>
     <div class="pos-row">
       <span class="pos-name">Notion</span>
-      <span class="pos-desc">Too complex and manual — no AI capture, high friction</span>
+      <span class="pos-desc">Infinitely flexible — which means infinitely complex. Requires ongoing setup and maintenance. Feels like work, not home.</span>
+      <span class="pos-fit bad">Poor</span>
+    </div>
+    <div class="pos-row">
+      <span class="pos-name">Trello</span>
+      <span class="pos-desc">Work-team mental model. You manually drag cards and choose columns. No NLP, no household-first design, no emotional categories.</span>
+      <span class="pos-fit bad">Poor</span>
+    </div>
+    <div class="pos-row">
+      <span class="pos-name">Google Keep</span>
+      <span class="pos-desc">Good for quick capture — but no organisation, no board view, no categorisation. Great inbox, no structure at all.</span>
+      <span class="pos-fit bad">Poor</span>
+    </div>
+    <div class="pos-row">
+      <span class="pos-name">Apple Reminders</span>
+      <span class="pos-desc">Simple shared lists. No categories, no kanban, no NLP, no worries or ideas distinction. One flat list per topic.</span>
+      <span class="pos-fit bad">Poor</span>
+    </div>
+    <div class="pos-row">
+      <span class="pos-name">Cozi</span>
+      <span class="pos-desc">Family-focused but calendar-centric, not task/idea/worry-centric. Dated UX. No NLP. No emotional categories.</span>
       <span class="pos-fit bad">Poor</span>
     </div>
     <div class="pos-row">
       <span class="pos-name">Alexa / Siri</span>
-      <span class="pos-desc">Voice only, no visual board, no shared household view</span>
+      <span class="pos-desc">Voice only, no visual board, no shared household view, no persistence you can review and act on together.</span>
       <span class="pos-fit bad">Poor</span>
     </div>
     <div class="pos-row">
       <span class="pos-name">WhatsApp</span>
-      <span class="pos-desc">No organisation, no categorisation, tasks get buried</span>
+      <span class="pos-desc">Zero organisation. Items get buried in three days of chat. No categories, no board. "Did you see my message?" is the whole problem.</span>
       <span class="pos-fit bad">Poor</span>
     </div>
-    <div class="pos-row" style="background:#FFF8F6;margin:-0px -26px;padding:10px 26px;border-radius:0 0 14px 14px;">
+    <div class="pos-row" style="background:#FFF8F6;margin:0 -26px;padding:10px 26px;border-radius:0 0 14px 14px;">
       <span class="pos-name" style="color:var(--coral);">Second Brain ✦</span>
-      <span class="pos-desc">As simple as texting, as organised as a kanban, AI-powered</span>
+      <span class="pos-desc">Shared-first · Natural language input · Kanban output · Household categories · Real-time sync · Zero setup</span>
       <span class="pos-fit us">Built for this</span>
     </div>
   </div>

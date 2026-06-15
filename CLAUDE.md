@@ -108,7 +108,10 @@ A shared household kanban board. Couples or families sign in with Google, create
       }
     },
     "publicStats": { ".read": true, ".write": "auth != null" },
-    "analytics":   { ".read": "auth != null", ".write": "auth != null" }
+    "analytics": {
+      ".read": "auth.token.email === 'margihdesai@gmail.com'",
+      ".write": "auth != null"
+    }
   }
 }
 ```

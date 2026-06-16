@@ -263,11 +263,12 @@
     /* ─── FOOTER ─────────────────────────────────── */
     footer {
       border-top: 1px solid var(--border); padding: 24px;
-      display: flex; align-items: center; justify-content: space-between;
-      flex-wrap: wrap; gap: 12px; font-size: 12px; color: #9CA3AF;
-      max-width: 1000px; margin: 0 auto;
+      display: flex; flex-direction: column; gap: 12px;
+      font-size: 12px; color: #9CA3AF; max-width: 1000px; margin: 0 auto;
     }
+    .footer-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
     .footer-built { display: inline-flex; align-items: center; gap: 6px; background: white; border: 1px solid var(--border); border-radius: 50px; padding: 4px 12px; font-size: 11px; }
+    .footer-privacy { font-size: 11px; color: #B0B5BC; text-align: center; }
 
     @media (max-width: 640px) {
       .origin-body { grid-template-columns: 1fr; }
@@ -833,8 +834,11 @@
 </section>
 
 <footer>
-  <div>🧠 Second Brain — Built by Margi Desai</div>
-  <div class="footer-built">🤖 Built with Claude AI</div>
+  <div class="footer-row">
+    <div>🧠 Second Brain — Built by Margi Desai</div>
+    <div class="footer-built">🤖 Built with Claude AI</div>
+  </div>
+  <div class="footer-privacy">Second Brain stores your data in Firebase. Only members of your household can see your board. We don't sell or share your data.</div>
 </footer>
 
 </body>

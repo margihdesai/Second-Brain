@@ -24,9 +24,8 @@ A shared household kanban board — built for couples and families to offload ta
 - **Mark complete** — tick ✓ moves a card to Completed
 
 ### Smart chat
-- **NLP categorisation** — type anything naturally; score-based keyword matching picks the right column automatically
-- **Voice input** — tap 🎤 and speak instead of typing (Web Speech API)
-- **Chat commands** — "summary", "how many items?", "show Margi's tasks", "undo", and more
+- **NLP categorisation** — type anything naturally; score-based keyword matching picks the right column automatically, with a Cloudflare Worker for smarter intent detection in production
+- **Chat commands** — "undo", natural language queries, and more
 
 ### Card details
 - **Due dates** — set an optional due date; overdue cards highlighted in red
@@ -40,7 +39,6 @@ A shared household kanban board — built for couples and families to offload ta
 ### Insights & analytics
 - **Insights screen** — completion rate, overdue count, active items by category, contributions per member
 - **Weekly digest** — summary of everything added in the past 7 days
-- **Founder dashboard** — admin-only view showing total users, feature usage, signups per day, and a full user table
 
 ### Demo & landing page
 - **Demo mode** — try a pre-populated board with no sign-in at `?demo=true`

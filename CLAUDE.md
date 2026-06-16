@@ -138,8 +138,7 @@ A shared household kanban board. Couples or families sign in with Google, create
 - Multi-household with invite codes + shareable `?code=` links
 - Real-time sync via Firebase Realtime Database
 - Kanban board: Tasks ✅, Worries 💭, Ideas 💡, Purchases 🛒, Trips ✈️, Life Admin 📋, Other 📝, Completed ☑️
-- Chat with score-based NLP categorisation
-- Voice input (Web Speech API)
+- Chat with score-based NLP categorisation (Cloudflare Worker in prod, keyword fallback offline)
 - Drag and drop between columns
 - Acknowledge (👋) cards from other members
 - Mark complete (✓)
@@ -150,7 +149,6 @@ A shared household kanban board. Couples or families sign in with Google, create
 - Email invite via mailto:
 - Admin board actions (leave, delete, promote)
 - Live stats on landing page (publicStats, real-time)
-- Founder analytics dashboard (margihdesai@gmail.com only)
 
 ## GitHub & deployment
 - **Repo:** `https://github.com/margihdesai/Second-Brain`

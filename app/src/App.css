@@ -101,7 +101,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
   .board { grid-template-columns:repeat(2, 1fr); }
 }
 @media (max-width:600px) {
-  .board { grid-template-columns:1fr; padding:8px 10px 80px; }
+  .board { grid-template-columns:1fr; padding:8px 10px 80px; height:auto; overflow-y:visible; }
+  .col-body { flex:unset; max-height:320px; }
   .chat { width:calc(100vw - 24px); right:12px; left:12px; bottom:80px; height:68vh; }
   .fab { bottom:16px; right:16px; }
 }

@@ -34,7 +34,7 @@ A shared household kanban board. Couples or families sign in with Google, create
 - **Firebase Realtime Database** — real-time sync (modular SDK v10)
 - **Firebase Authentication** — Google Sign-In (`signInWithPopup`)
 - **GitHub Pages** — static hosting
-- **No backend** — fully client-side + Firebase
+- **Cloudflare Worker** — `second-brain-categorise.margihdesai.workers.dev` — AI categorisation proxy (POST only). Set via `VITE_CATEGORISE_WORKER_URL` in `app/.env.production`. Falls back to keyword matching if unavailable.
 
 ## Firebase project
 - **Project ID:** `second-brain-1619f`

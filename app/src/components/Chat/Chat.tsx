@@ -7,8 +7,8 @@ const BOT_FALLBACK: Record<string, string> = {
   worry: "Saved 💭. You can let it go for now.",
   idea: 'Love it 💡! On the board.',
   purchase: 'On the list 🛒!',
-  trip: 'Ooh, travel! ✈️ Saved.',
-  'life-admin': 'Filed under Life Admin 📋.',
+  trip: 'Ooh, travel! ✈️ Saved to Trips. That sounds exciting.',
+  'life-admin': 'Filed under Life Admin 📋. One less thing to forget!',
   other: 'Got it 📝. Saved!',
 };
 

@@ -397,8 +397,8 @@
       <div class="step-num-circle">6</div>
       <div class="step-content">
         <div class="step-tag">AI / NLP</div>
-        <h4>Built score-based NLP categorisation</h4>
-        <p>Instead of relying on a single regex match, the app scores each input against keyword arrays for every category and picks the highest scorer. In production, inputs are also sent to a Cloudflare Worker for smarter intent detection — with a keyword fallback if the network is unavailable.</p>
+        <h4>Built Claude-powered categorisation with a keyword fallback</h4>
+        <p>Every message is sent to a Cloudflare Worker that calls the Claude API (Haiku). Claude receives the full board state and conversation history, decides the intent (add / query / chat), picks a category, and writes a warm reply. If the network is unavailable, the app falls back to score-based keyword matching so it always works.</p>
       </div>
     </div>
 
@@ -505,7 +505,7 @@
       </div>
       <div>
         <div class="tradeoff-label">Why</div>
-        <div class="tradeoff-why">Started with pure keyword matching — no API cost, works offline, handles 90%+ of inputs accurately. A Cloudflare Worker now runs in production for smarter intent detection, with keyword matching as the offline fallback. Best of both: fast by default, smarter when online.</div>
+        <div class="tradeoff-why">Started with pure keyword matching — no API cost, works offline, handles 90%+ of inputs accurately. Claude API (Haiku) now powers categorisation in production via a Cloudflare Worker proxy, with keyword matching as the offline fallback. Best of both: always works, smarter when online.</div>
       </div>
     </div>
 

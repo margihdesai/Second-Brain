@@ -138,7 +138,7 @@ A shared household kanban board. Couples or families sign in with Google, create
 - Multi-household with invite codes + shareable `?code=` links
 - Real-time sync via Firebase Realtime Database
 - Kanban board: Tasks ✅, Worries 💭, Ideas 💡, Purchases 🛒, Trips ✈️, Life Admin 📋, Other 📝, Completed ☑️
-- Chat with score-based NLP categorisation (Cloudflare Worker in prod, keyword fallback offline)
+- Chat powered by Claude API (Haiku) via Cloudflare Worker — intent detection (add/query/chat), category, and reply. Keyword fallback when offline.
 - Drag and drop between columns
 - Acknowledge (👋) cards from other members
 - Mark complete (✓)

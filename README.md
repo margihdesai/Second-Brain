@@ -24,7 +24,7 @@ A shared household kanban board — built for couples and families to offload ta
 - **Mark complete** — tick ✓ moves a card to Completed
 
 ### Smart chat
-- **NLP categorisation** — type anything naturally; score-based keyword matching picks the right column automatically, with a Cloudflare Worker for smarter intent detection in production
+- **Claude AI categorisation** — every message is processed by Claude API (Haiku) via a Cloudflare Worker: detects intent (add/query/chat), picks the right category, writes a contextual reply. Falls back to keyword matching offline.
 - **Chat commands** — "undo", natural language queries, and more
 
 ### Card details
